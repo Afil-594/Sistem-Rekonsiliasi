@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { PipelineTrack } from "@/components/ui/PipelineTrack";
 
 export const CHECKER_PIPELINE_STEPS = [
-  { id: "inbound", label: "Kedatangan" },
+  { id: "inbound", label: "inbound" },
   { id: "qc", label: "QC lokasi" },
   { id: "closed", label: "Selesai" },
 ] as const;
@@ -67,7 +67,7 @@ export function CheckerArrivalPageHeading({
         .filter(Boolean)
         .join(" ")}
     >
-      <p className="ds-section-label">Checker · kedatangan</p>
+      <p className="ds-section-label">Checker · inbound</p>
       <h1 className="ds-h1 mt-1">{pageTitle}</h1>
       <div className="ds-lead mt-2 space-y-2">{pageLead}</div>
     </div>

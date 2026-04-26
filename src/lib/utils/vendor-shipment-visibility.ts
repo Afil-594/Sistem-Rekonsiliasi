@@ -99,7 +99,7 @@ export function getVendorShipmentStatusLabel(status: Shipment["status"]): {
         shortLabel: "Dalam perjalanan",
         headline: "Menuju lokasi penerimaan",
         description:
-          "Shipment sudah dikonfirmasi. Tim lokasi belum menyelesaikan scan kedatangan dan QC.",
+          "Shipment sudah dikonfirmasi. Tim lokasi belum menyelesaikan scan inbound dan QC.",
       };
     case "arrived":
       return {

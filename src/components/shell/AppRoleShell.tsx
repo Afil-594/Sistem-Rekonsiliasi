@@ -2,18 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   Activity,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   LayoutDashboard,
+  Menu,
   ScanLine,
   ScrollText,
   Truck,
   User,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -145,6 +154,55 @@ export function AppRoleShell({ roleLabel, items, children }: Props) {
     setSidebarCollapsedInStorage(!getSidebarFromStorage());
   }, []);
 
+  const mobileDrawerId = useId();
+  const mobileMenuTitleId = useId();
+  const mobileCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const closeMobile = useCallback(() => {
+    setMobileOpen(false);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      return;
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeMobile();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen, closeMobile]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    if (!mobileOpen) {
+      return;
+    }
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      return;
+    }
+    const t = requestAnimationFrame(() => {
+      mobileCloseButtonRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(t);
+  }, [mobileOpen]);
+
   return (
     <div
       className="app-shell"
@@ -152,52 +210,122 @@ export function AppRoleShell({ roleLabel, items, children }: Props) {
       suppressHydrationWarning
     >
       <div className="flex min-h-full min-w-0 flex-1 text-[var(--text-primary)]">
-        {/* Mobile: topbar + horizontal nav — light rail */}
+        {/* Mobile: single topbar + hamburger drawer */}
         <div className="fixed inset-x-0 top-0 z-30 print:hidden lg:hidden">
-          <div className="flex h-12 items-center justify-between gap-2 border-b border-[var(--border-default)] bg-[var(--shell-surface)]/95 px-3 shadow-sm backdrop-blur-sm backdrop-saturate-150 sm:px-4">
-            <div className="shell-topbar__user">
-              <User
-                className="shell-topbar__user-icon"
-                strokeWidth={2}
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <p className="shell-topbar__user-name" title={userLabel}>
-                  {userLabel || "…"}
-                </p>
-              </div>
-            </div>
-            <SignOutButton />
-          </div>
-          <div className="shell-nav-mobile__section border-b border-[var(--border-default)] bg-[var(--shell-surface)]/95 px-3 py-2 shadow-sm sm:px-4">
-            <p className="shell-nav-mobile__section-title">{roleLabel}</p>
-          </div>
-          <nav
-            className="shell-nav-mobile flex gap-1 overflow-x-auto border-b border-[var(--border-default)] bg-[var(--shell-surface)]/95 px-2 py-2 shadow-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            aria-label="Navigasi"
+          <div
+            className="border-b border-[var(--border-default)] bg-[var(--shell-surface)]/95 shadow-sm backdrop-blur-sm backdrop-saturate-150 pt-[env(safe-area-inset-top,0px)]"
           >
-            {items.map((item) => {
-              const Icon = SHELL_ICONS[item.icon] as LucideIcon;
-              const isActive = active === item;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`shell-nav-item shrink-0 whitespace-nowrap ${
-                    isActive ? "shell-nav-item--active" : ""
-                  }`}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <Icon
-                    className="shell-nav-icon"
-                    strokeWidth={isActive ? 2 : 1.75}
-                  />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+            <div className="flex h-12 items-center gap-2 px-3 sm:px-4">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                className="ds-btn-ghost -ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-transparent text-[var(--text-primary)] hover:border-[var(--border-default)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--navy)]"
+                aria-expanded={mobileOpen}
+                aria-controls={mobileDrawerId}
+                aria-label="Buka menu navigasi"
+              >
+                <Menu className="h-5 w-5" strokeWidth={2} aria-hidden />
+              </button>
+              <p
+                className="min-w-0 flex-1 truncate text-base font-semibold text-[var(--text-primary)]"
+                title={roleLabel}
+              >
+                {roleLabel}
+              </p>
+            </div>
+          </div>
         </div>
+
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 z-40 print:hidden lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={mobileMenuTitleId}
+          >
+            <div
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"
+              onClick={closeMobile}
+              aria-hidden
+            />
+            <aside
+              id={mobileDrawerId}
+              className="shell-sidebar absolute left-0 top-0 flex h-full w-[min(20rem,85vw)] max-w-sm min-w-0 flex-col border-r pt-[max(0.5rem,env(safe-area-inset-top,0px))] print:hidden [padding-bottom:max(0.5rem,env(safe-area-inset-bottom,0px))]"
+              style={{ borderColor: "var(--shell-sidebar-border)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="flex items-start justify-between gap-2 border-b px-3 pb-3"
+                style={{ borderColor: "var(--shell-sidebar-border)" }}
+              >
+                <div className="shell-sidebar__user min-w-0 flex-1 pl-0.5">
+                  <User
+                    className="shell-sidebar__user-icon--lg"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="shell-sidebar__user-name"
+                      title={userLabel}
+                    >
+                      {userLabel || "…"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  ref={mobileCloseButtonRef}
+                  type="button"
+                  onClick={closeMobile}
+                  className="ds-btn-ghost flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-[#f0f9ff] hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7dd3fc]"
+                  aria-label="Tutup menu"
+                >
+                  <X className="h-5 w-5" strokeWidth={2} aria-hidden />
+                </button>
+              </div>
+              <div className="shell-sidebar__nav-section px-2 pb-2 pt-3">
+                <h2
+                  id={mobileMenuTitleId}
+                  className="shell-sidebar__nav-title"
+                >
+                  {roleLabel}
+                </h2>
+              </div>
+              <nav
+                className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2 pt-0"
+                aria-label="Navigasi samping"
+              >
+                {items.map((item) => {
+                  const Icon = SHELL_ICONS[item.icon] as LucideIcon;
+                  const isActive = active === item;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMobile}
+                      className={`shell-nav-item ${
+                        isActive ? "shell-nav-item--active" : ""
+                      }`}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <Icon
+                        className="shell-nav-icon"
+                        strokeWidth={isActive ? 2.1 : 1.75}
+                      />
+                      <span className="shell-nav-item__label">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+              <div
+                className="mt-auto border-t p-2"
+                style={{ borderColor: "var(--shell-sidebar-border)" }}
+              >
+                <SignOutButton variant="shellDark" />
+              </div>
+            </aside>
+          </div>
+        )}
 
         <aside
           className="shell-sidebar fixed inset-y-0 left-0 z-20 hidden w-[var(--app-sidebar-w)] min-w-0 flex-col border-r pt-4 transition-[width] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] print:hidden lg:flex"
@@ -317,7 +445,7 @@ export function AppRoleShell({ roleLabel, items, children }: Props) {
 
         <div className="flex min-h-full min-w-0 flex-1 flex-col pl-0 transition-[padding] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] print:pl-0 lg:pl-[var(--app-sidebar-w)]">
           <main
-            className="min-h-full min-w-0 flex-1 bg-[var(--page-bg)] pt-[9rem] lg:pt-0 print:pt-0"
+            className="min-h-full min-w-0 flex-1 bg-[var(--page-bg)] pt-[calc(3rem+env(safe-area-inset-top,0px))] lg:pt-0 print:pt-0"
             id="main"
           >
             {children}

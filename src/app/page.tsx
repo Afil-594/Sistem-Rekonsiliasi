@@ -50,7 +50,7 @@ export default function Home() {
           </h1>
 
           <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-[var(--text-secondary)] sm:mt-6 sm:mx-auto sm:text-lg sm:leading-relaxed">
-            Portal terpusat untuk memonitor kedatangan, verifikasi inbound, dan rekonsiliasi
+            Portal terpusat untuk memonitor kedatangan barang, verifikasi inbound, dan rekonsiliasi
             operasional — khusus lingkungan internal{" "}
             <span className="font-medium text-[var(--text-primary)]">PT Indonesia Epson Industry</span>.
           </p>

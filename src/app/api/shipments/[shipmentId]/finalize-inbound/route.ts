@@ -14,7 +14,7 @@ export async function POST(
     result = await finalizeScanForShipment(supabase, shipmentId);
   } catch (e) {
     const message =
-      e instanceof Error ? e.message : "Gagal menyelesaikan scan kedatangan.";
+      e instanceof Error ? e.message : "Gagal menyelesaikan scan kedatangan barang.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 

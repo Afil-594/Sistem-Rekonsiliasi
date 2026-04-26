@@ -41,8 +41,8 @@ export default async function CheckerArrivalPage({
   return (
     <div className="ds-page-operational">
       <header className="border-b border-[var(--border-default)] pb-6">
-        <p className="ds-section-label mb-1">Checker · kedatangan</p>
-        <h1 className="ds-h1">Verifikasi kedatangan</h1>
+        <p className="ds-section-label mb-1">Checker · Inbound</p>
+        <h1 className="ds-h1">Verifikasi inbound</h1>
         <p className="ds-lead">
           Pilih shipment untuk scan box, rekonsiliasi, atau lanjutkan QC pada box
           yang sudah tiba.

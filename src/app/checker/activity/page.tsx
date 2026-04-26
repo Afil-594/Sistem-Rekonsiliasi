@@ -36,7 +36,7 @@ export default async function CheckerActivityPage() {
   return (
     <div className="ds-page-operational">
       <header className="border-b border-[var(--border-default)] pb-6">
-        <p className="ds-section-label mb-1">Checker · kedatangan</p>
+        <p className="ds-section-label mb-1">Checker · inbound</p>
         <h1 className="ds-h1">Aktivitas box</h1>
         <p className="ds-lead">
           Ringkasan operasional proses box: scan tiba, QC sesuai, dan QC bermasalah

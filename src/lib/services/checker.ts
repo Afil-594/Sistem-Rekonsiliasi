@@ -851,7 +851,7 @@ export async function finalizeScanForShipment(
       box_id: box.id,
       discrepancy_type: "missing",
       discrepancy_layer: "arrival",
-      description: `Box ${box.box_code} (part ${box.part_number}, qty ${box.qty_per_box}) belum di-scan saat kedatangan`,
+      description: `Box ${box.box_code} (part ${box.part_number}, qty ${box.qty_per_box}) belum di-scan saat inbound`,
       reported_by: checker.profile.id,
       actual_qty: 0,
     });

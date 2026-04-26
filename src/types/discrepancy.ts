@@ -12,7 +12,7 @@ export type DiscrepancyLayer = "po_vendor" | "arrival" | "qc";
 
 export const DISCREPANCY_LAYER_LABELS: Record<DiscrepancyLayer, string> = {
   po_vendor: "PO vs vendor",
-  arrival: "Kedatangan",
+  arrival: "inbound",
   qc: "QC",
 };
 

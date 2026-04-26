@@ -32,7 +32,7 @@ function formatAction(action: string) {
 
 /** Display label for well-known actions (payload / docs still use canonical action string). */
 function formatActionLabel(action: string) {
-  if (action === "finalize_scan") return "Selesaikan scan kedatangan";
+  if (action === "finalize_scan") return "Selesaikan scan inbound";
   return formatAction(action);
 }
 

@@ -3,7 +3,7 @@ import { AppRoleShell, type ShellNavItem } from "@/components/shell/AppRoleShell
 const navItems: ShellNavItem[] = [
   {
     href: "/checker/arrival",
-    label: "Verifikasi kedatangan",
+    label: "Verifikasi inbound",
     icon: "scanLine",
     match: "prefix",
   },
@@ -21,7 +21,7 @@ export default function CheckerLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AppRoleShell roleLabel="Kedatangan" items={navItems}>
+    <AppRoleShell roleLabel="Inbound" items={navItems}>
       {children}
     </AppRoleShell>
   );

@@ -58,7 +58,7 @@ export function buildCheckerActivityItems(
         shipmentCode: str(p, "shipment_code") || "—",
         partNumber: boxId ? (partByBoxId[boxId] ?? null) : null,
         outcomeBadge: "Tiba",
-        activityTitle: "Scan kedatangan",
+        activityTitle: "Scan inbound",
         discrepancyTypeLabel: null,
         actorLabel: str(p, "actor_name") || null,
       };

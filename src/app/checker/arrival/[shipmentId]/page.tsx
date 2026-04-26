@@ -133,7 +133,7 @@ export default async function CheckerArrivalShipmentPage({
     ? "Ringkasan selisih hasil rekonsiliasi vs QC bermasalah — untuk eskalasi supervisor."
     : isScanStage
       ? "Akan terisi setelah scan diselesaikan; gunakan untuk memverifikasi selisih."
-      : "Bandingkan lapisan: rekonsiliasi (PO / kedatangan) vs inspeksi QC di lokasi.";
+      : "Bandingkan lapisan: rekonsiliasi (PO / inbound) vs inspeksi QC di lokasi.";
 
   const discSectionClass = isIssue
     ? "ds-section-tint border-red-200/60 shadow-md ring-1 ring-red-100/80 dark:ring-red-900/30"
