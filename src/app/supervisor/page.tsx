@@ -127,7 +127,7 @@ export default async function SupervisorDashboardPage() {
               href="/supervisor/review"
             >
               <ClipboardList className="h-4 w-4" aria-hidden />
-              Tinjau selisih
+              Review discrepancy
             </Link>
             <Link
               className="ds-btn ds-btn-secondary inline-flex shrink-0 items-center justify-center gap-2"

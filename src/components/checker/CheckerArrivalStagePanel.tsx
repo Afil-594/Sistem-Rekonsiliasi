@@ -78,39 +78,52 @@ export function CheckerArrivalPageHeading({
 export function CheckerArrivalProgressBlock({
   status,
   counts,
+  /** Kode status mentah — sembunyikan jika sudah ditampilkan di blok identitas shipment. */
+  showSystemStatusCode = true,
 }: {
   status: string | null;
   counts: CheckerArrivalCounts;
+  showSystemStatusCode?: boolean;
 }) {
   const active = checkerPipelineActiveIndex(status);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div>
+    <div className="flex flex-col gap-3">
+      <div
+        className={
+          showSystemStatusCode
+            ? "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+            : undefined
+        }
+      >
+        <div className="min-w-0">
           <p className="text-xs font-medium text-[var(--text-muted)]">
-            Tahap operasional
+            Tahap operasional saat ini
           </p>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             {active === 0
-              ? "Anda sedang di tahap scan & rekonsiliasi."
+              ? "Scan & rekonsiliasi kedatangan."
               : active === 1
-                ? "Anda sedang di tahap QC pada box yang sudah tiba."
-                : "Tahap checker untuk shipment ini sudah selesai."}
+                ? "QC pada box yang sudah tiba."
+                : "Alur checker untuk shipment ini selesai."}
           </p>
         </div>
-        <div
-          className="shrink-0 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--section-bg)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)]"
-          title="Status shipment (sistem)"
-        >
-          <span className="font-mono text-[var(--text-primary)]">
-            {status ?? "—"}
-          </span>
-        </div>
+        {showSystemStatusCode ? (
+          <div
+            className="shrink-0 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--section-bg)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)]"
+            title="Status shipment (sistem)"
+          >
+            <span className="font-mono text-[var(--text-primary)]">
+              {status ?? "—"}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-medium text-[var(--text-muted)]">Alur</p>
+        <p className="mb-1.5 text-xs font-medium text-[var(--text-muted)]">
+          Alur singkat
+        </p>
         <PipelineTrack
           aria-label="Tahap checker kedatangan"
           activeIndex={active}
@@ -122,7 +135,7 @@ export function CheckerArrivalProgressBlock({
       </div>
 
       <div
-        className="flex flex-wrap gap-2 border-t border-[var(--border-default)] pt-4"
+        className="flex flex-wrap gap-2 border-t border-[var(--border-default)] pt-3"
         aria-label="Ringkasan box"
       >
         <span className="ds-summary-strip gap-2 border-0 bg-transparent p-0">

@@ -46,14 +46,6 @@ function ShipmentFieldList({
       </div>
       <div>
         <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-          Status
-        </dt>
-        <dd className="mt-0.5 flex items-center gap-2">
-          {status ? <StatusBadge status={status} /> : "—"}
-        </dd>
-      </div>
-      <div>
-        <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
           Referensi PO
         </dt>
         <dd className="mt-0.5 font-medium text-[var(--text-primary)]">
@@ -62,7 +54,15 @@ function ShipmentFieldList({
       </div>
       <div>
         <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
-          Dikonfirmasi
+          Status
+        </dt>
+        <dd className="mt-0.5 flex items-center gap-2">
+          {status ? <StatusBadge status={status} /> : "—"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+          Waktu dikonfirmasi
         </dt>
         <dd className="mt-0.5 text-[var(--text-primary)]">
           {formatWhen(createdAt)}
@@ -90,7 +90,7 @@ export function CheckerShipmentSummaryCard({
     <div>
       <h2 className="ds-h2">Shipment</h2>
       <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-        Referensi operasional — segarkan halaman jika data berubah di perangkat lain.
+        Refresh halaman bila data diubah dari perangkat lain.
       </p>
     </div>
   );

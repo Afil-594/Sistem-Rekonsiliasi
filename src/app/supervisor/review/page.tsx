@@ -44,7 +44,7 @@ export default async function SupervisorReviewPage({
       <div className="ds-section-tint border-l-[3px] border-l-[var(--navy)]">
         <header className="space-y-2">
           <p className="ds-section-label mb-1">Supervisor</p>
-          <h1 className="ds-h1">Tinjau selisih</h1>
+          <h1 className="ds-h1">Review discrepancy</h1>
           <p className="ds-lead max-w-2xl">
             Shipment dengan kondisi bermasalah yang memerlukan keputusan supervisor (termasuk
             retur).
@@ -64,7 +64,7 @@ export default async function SupervisorReviewPage({
         lead={
           shipments.length === 0
             ? "Belum ada shipment dalam antrean. Item akan tampil di sini bila perlu tindakan."
-            : "Klik sebuah kartu untuk membuka review per box. Urutan mengikuti daftar issue dari sistem."
+            : "Klik salah satu shipment untuk membuka review per box."
         }
       >
         {shipments.length === 0 ? (

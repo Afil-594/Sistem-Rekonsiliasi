@@ -100,38 +100,39 @@ export function FinalizeScanButton({
       <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[var(--navy)]">
         Finalisasi tahap
       </p>
+      <p className="m-0 mt-2 max-w-3xl text-sm leading-relaxed text-[var(--text-secondary)]">
+        Selesaikan tahap scan untuk melanjutkan ke tahap QC. Box yang belum terscan akan
+        tercatat <strong>missing</strong>.
+      </p>
       <div
-        className="mt-2 flex flex-wrap items-center gap-2"
+        className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
         role="status"
         aria-label="Progres sebelum finalisasi"
       >
-        <span className="ds-summary-strip gap-1.5 border-0 bg-[var(--surface)] p-0 py-1.5 pl-0 pr-2 text-xs shadow-sm">
-          <span className="text-[var(--text-muted)]">Ter-scan</span>
-          <span className="ds-count-chip text-xs font-bold tabular-nums">
-            {scannedCount}/{totalCount}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="ds-summary-strip gap-1.5 border-0 bg-[var(--surface)] p-0 py-1.5 pl-0 pr-2 text-xs shadow-sm">
+            <span className="text-[var(--text-muted)]">Ter-scan</span>
+            <span className="ds-count-chip text-xs font-bold tabular-nums">
+              {scannedCount}/{totalCount}
+            </span>
           </span>
-        </span>
-        {pendingCount > 0 ? (
-          <span className="rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            {pendingCount} belum scan → tercatat missing
-          </span>
-        ) : (
-          <span className="rounded-md border border-emerald-300/50 bg-emerald-50/70 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200">
-            Semua kode tercatat
-          </span>
-        )}
-      </div>
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <p className="m-0 max-w-xl text-sm text-[var(--text-secondary)]">
-          Box yang belum terscan akan tercatat <strong>missing</strong>.
-        </p>
+          {pendingCount > 0 ? (
+            <span className="rounded-md border border-amber-300/60 bg-amber-50/80 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              {pendingCount} belum scan → tercatat missing
+            </span>
+          ) : (
+            <span className="rounded-md border border-emerald-300/50 bg-emerald-50/70 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200">
+              Semua box tercatat
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setFinalizeOpen(true)}
           disabled={submitting}
           className="ds-btn ds-btn-primary w-full min-w-[12rem] shrink-0 sm:w-auto"
         >
-          {submitting ? "Memproses…" : "Selesaikan scan & lanjut QC"}
+          {submitting ? "Memproses…" : "Finalisasi scan"}
         </button>
       </div>
       {errorMessage ? (

@@ -67,7 +67,7 @@ export function ShipmentDetailView({ detail }: Props) {
           <p className="ds-lead">
             {isPending
               ? "Siapkan packing per part, pantau selisih terhadap PO, lalu konfirmasi ketika siap."
-              : "Pantau progres penerimaan di lokasi — segarkan halaman untuk data terbaru."}
+              : "Pantau progres penerimaan di lokasi — refresh halaman untuk data terbaru."}
           </p>
         </div>
 

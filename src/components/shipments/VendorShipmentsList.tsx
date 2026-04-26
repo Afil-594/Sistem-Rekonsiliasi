@@ -22,7 +22,7 @@ import {
 
 const PIPELINE_STEPS = [
   { id: "pending", label: "Draft" },
-  { id: "in_transit", label: "Jalan" },
+  { id: "in_transit", label: "in transit" },
   { id: "arrived", label: "Tiba" },
   { id: "issue", label: "Review" },
   { id: "done", label: "Selesai" },

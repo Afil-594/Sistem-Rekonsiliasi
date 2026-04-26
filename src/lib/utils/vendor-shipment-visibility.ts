@@ -20,7 +20,7 @@ export const VENDOR_SHIPMENT_STATUS_FILTERS: {
   { value: "pending", label: "Draft" },
   { value: "in_transit", label: "Dalam perjalanan" },
   { value: "arrived", label: "Tiba di lokasi" },
-  { value: "issue", label: "Perlu tindak lanjut" },
+  { value: "issue", label: "Ditindak lanjuti" },
   { value: "done", label: "Selesai" },
 ];
 
@@ -110,7 +110,7 @@ export function getVendorShipmentStatusLabel(status: Shipment["status"]): {
       };
     case "issue":
       return {
-        shortLabel: "Perlu review",
+        shortLabel: "in review",
         headline: "Bermasalah — ditinjau Supervisor",
         description:
           "Ada selisih yang dilaporkan. Supervisor meninjau shipment ini sebelum dapat ditutup sepenuhnya.",

@@ -1,7 +1,6 @@
 import { ArrivalBoxList } from "@/components/checker/ArrivalBoxList";
 import { SmartBackLink } from "@/components/navigation/SmartBackLink";
 import { ArrivalScanForm } from "@/components/checker/ArrivalScanForm";
-import { CheckerArrivalCockpitCallout } from "@/components/checker/CheckerArrivalCockpitCallout";
 import {
   CheckerArrivalPageHeading,
   CheckerArrivalProgressBlock,
@@ -86,10 +85,7 @@ export default async function CheckerArrivalShipmentPage({
           : "Lanjutan QC";
 
   const pageLead = isScanStage ? (
-    <p>
-      Scan atau ketik kode setiap box saat tiba. Jika semua box sudah di-scan,
-      selesaikan (finalize) scan untuk rekonsiliasi.
-    </p>
+    <p>Verifikasi kedatangan fisik — scan box di bawah, lalu finalisasi tahap saat siap.</p>
   ) : isDone ? (
     <p className="ds-alert ds-alert-success border-0" role="status">
       Scan, rekonsiliasi, dan QC sudah selesai tanpa selisih tertunda.
@@ -99,23 +95,12 @@ export default async function CheckerArrivalShipmentPage({
       QC selesai. Ada selisih yang perlu ditinjau Supervisor.
     </p>
   ) : isArrivedStage ? (
-    <p>
-      Scan kedatangan dan rekonsiliasi selesai. Mulai QC pada box yang sudah
-      tiba.
-    </p>
+    <p>Rekonsiliasi selesai — lanjut QC pada daftar box.</p>
   ) : (
     <p className="ds-alert ds-alert-warn" role="status">
       Masih ada box yang menunggu QC. Selesaikan QC untuk box tersisa di bawah.
     </p>
   );
-
-  const cockpitMode = isScanStage
-    ? "scan"
-    : isDone
-      ? "done"
-      : isIssue
-        ? "issue"
-        : "qc";
 
   const counts = {
     pending: pendingCount,
@@ -242,8 +227,11 @@ export default async function CheckerArrivalShipmentPage({
   );
 
   const finalizeScanSection = isScanStage ? (
-    <div className="mt-4 border-t border-[var(--border-default)] pt-4">
-      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+    <div
+      className="ds-card-pad border-t border-[var(--border-default)]"
+      aria-label="Selesaikan scan (finalize)"
+    >
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
         Selesaikan scan (finalize)
       </p>
       <FinalizeScanButton
@@ -256,7 +244,10 @@ export default async function CheckerArrivalShipmentPage({
   ) : null;
 
   const combinedShipmentControlCard = (
-    <section className="ds-card" aria-label="Shipment dan kontrol operasional">
+    <section
+      className="ds-card"
+      aria-label="Identitas shipment dan tahap operasional checker"
+    >
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-2">
         <div className="ds-card-pad min-w-0 border-b border-[var(--border-default)] lg:border-b-0 lg:border-r lg:border-[var(--border-default)]">
           <CheckerShipmentSummaryCard
@@ -268,16 +259,20 @@ export default async function CheckerArrivalShipmentPage({
           />
         </div>
         <div
-          className="ds-card-pad min-w-0"
-          aria-label="Kontrol, progres, dan finalisasi scan"
+          className="ds-card-pad min-w-0 border-b border-[var(--border-default)] lg:border-b-0"
+          aria-label="Tahap operasional dan ringkasan box"
         >
-          <h2 className="ds-h2">Kontrol &amp; referensi</h2>
-          <div className="mt-4">
-            <CheckerArrivalProgressBlock status={shipment.status} counts={counts} />
+          <h2 className="ds-h2">Tahap operasional &amp; QC</h2>
+          <div className="mt-3">
+            <CheckerArrivalProgressBlock
+              status={shipment.status}
+              counts={counts}
+              showSystemStatusCode={false}
+            />
           </div>
-          {finalizeScanSection}
         </div>
       </div>
+      {finalizeScanSection}
     </section>
   );
 
@@ -296,14 +291,6 @@ export default async function CheckerArrivalShipmentPage({
           </div>
 
           {combinedShipmentControlCard}
-
-          <CheckerArrivalCockpitCallout
-            status={shipment.status}
-            counts={counts}
-            mode={cockpitMode}
-            needsQcCount={arrivedCount}
-            pendingCount={pendingCount}
-          />
 
           {isIssue ? (
             <>
