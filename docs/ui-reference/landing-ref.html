@@ -1,0 +1,208 @@
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+    .page {
+      min-height: 580px;
+      background: #0F1117;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .glow-left {
+      position: absolute;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
+      top: -80px; left: -80px;
+      pointer-events: none;
+    }
+    .navbar {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: #6366F1; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { width: 16px; height: 16px; }
+    .logo-name { font-size: 13px; font-weight: 600; color: #F1F5F9; }
+    .logo-org { font-size: 11px; color: #3D4D63; }
+    .sys-label {
+      font-size: 11px; color: #3D4D63;
+      border: 1px solid rgba(255,255,255,0.05);
+      padding: 4px 10px; border-radius: 6px;
+    }
+    .hero {
+      position: relative; z-index: 10;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 64px 40px 48px;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 11px; font-weight: 500;
+      color: #818CF8;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.18);
+      border-radius: 9999px;
+      padding: 4px 14px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #6366F1;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .hero-title {
+      font-size: 40px; font-weight: 700;
+      color: #F1F5F9;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      margin-bottom: 16px;
+      max-width: 540px;
+    }
+    .hero-title em { color: #818CF8; font-style: normal; }
+    .hero-sub {
+      font-size: 14px; color: #4A5A72;
+      line-height: 1.7;
+      max-width: 400px;
+      margin-bottom: 36px;
+    }
+    .btn-masuk {
+      display: inline-flex; align-items: center; gap: 9px;
+      background: #6366F1;
+      color: white; font-size: 14px; font-weight: 500;
+      padding: 11px 24px; border-radius: 9px;
+      border: none; cursor: pointer;
+      transition: background 150ms, transform 150ms;
+      margin-bottom: 14px;
+    }
+    .btn-masuk:hover { background: #818CF8; transform: translateY(-1px); }
+    .btn-masuk:active { transform: scale(0.97); }
+    .btn-masuk svg { width: 15px; height: 15px; }
+    .login-note {
+      font-size: 12px; color: #2D3A4A;
+    }
+    .divider {
+      position: relative; z-index: 10;
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      margin: 0;
+    }
+    .footer {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 40px;
+    }
+    .footer-left { font-size: 11px; color: #1E293B; }
+    .status {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 11px; color: #2D3A4A;
+    }
+    .dot-live {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #10B981;
+    }
+    .roles-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; margin-top: 28px;
+    }
+    .role-pill {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: #3D4D63;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 9999px;
+      padding: 4px 12px;
+    }
+    .role-pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+    </style>
+    
+    <div class="page">
+      <div class="grid-bg"></div>
+      <div class="glow-left"></div>
+    
+      <nav class="navbar">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="3" width="15" height="13" rx="1"/>
+              <path d="M16 8h4l3 3v5h-7V8z"/>
+              <circle cx="5.5" cy="18.5" r="2.5"/>
+              <circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+          </div>
+          <div>
+            <div class="logo-name">Epson IJP</div>
+            <div class="logo-org">PT Indonesia Epson Industry</div>
+          </div>
+        </div>
+        <div class="sys-label">Shipment Reconciliation System</div>
+      </nav>
+    
+      <div class="hero">
+        <div class="hero-eyebrow">
+          <div class="pulse"></div>
+          Sistem Operasional Internal
+        </div>
+    
+        <h1 class="hero-title">
+          Verifikasi Shipment<br>& Jejak <em>QC</em> Real-time
+        </h1>
+    
+        <p class="hero-sub">
+          Platform terpusat untuk monitoring kedatangan barang, verifikasi inbound, dan rekonsiliasi selisih antara ASN dan aktual di lapangan.
+        </p>
+    
+        <button class="btn-masuk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          Masuk ke Sistem
+        </button>
+        <div class="login-note">Gunakan akun yang telah diberikan oleh admin</div>
+    
+        <div class="roles-row">
+          <div class="role-pill"><div class="role-pill-dot" style="background:#6366F1"></div>Admin</div>
+          <div class="role-pill"><div class="role-pill-dot" style="background:#10B981"></div>Supervisor</div>
+          <div class="role-pill"><div class="role-pill-dot" style="background:#F59E0B"></div>Checker</div>
+          <div class="role-pill"><div class="role-pill-dot" style="background:#64748B"></div>Vendor</div>
+        </div>
+      </div>
+    
+      <hr class="divider">
+    
+      <div class="footer">
+        <div class="footer-left">© 2026 PT Indonesia Epson Industry — Internal Use Only</div>
+        <div class="status">
+          <div class="dot-live"></div>
+          Sistem aktif
+        </div>
+      </div>
+    </div>
+    

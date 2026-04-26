@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+
+You are assisting on a capstone project: Shipment Verification & QC Traceability System for PT Indonesia Epson Industry.
+
+Tech stack: Next.js, TypeScript, Supabase
+
+## General
+- Keep code simple, minimal, and maintainable.
+- Do not modify unrelated files.
+- For major decisions with insufficient context, ask first. For minor details, use the simplest reasonable approach.
+
+## Database
+- Always follow exact table/column names from `docs/database/schema.sql`. Never invent schema unless asked.
+- If requested logic conflicts with the schema, follow the schema and state the conflict clearly.
+
+## Coding
+- Functions should be small and focused with clear naming.
+- No extra abstractions, helpers, or layers unless clearly needed.
+- Business logic in API/backend must be explicit and readable.
+- Schema-related code must match Supabase schema exactly.
+
+## Output
+- Return only what was requested.
+- If there's a risk or inconsistency, state it briefly.

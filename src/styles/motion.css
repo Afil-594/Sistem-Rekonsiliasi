@@ -1,0 +1,458 @@
+/**
+ * KEPS — global motion system (CSS-only)
+ *
+ * Patterns:
+ * - `reveal-children` — staggered fade + rise on direct children (opt-out: `data-motion="none"`)
+ * - Page shells: `.ds-page`, `.ds-page-narrow`, `.ds-page-wide`, `.ds-page-operational`, `.ds-page-operational-tight`
+ *   also apply the same child stagger (no extra class on each page).
+ * - `reveal` / `reveal-sm` — single block or text (alias: `surface-enter`, `text-enter`)
+ * - `reveal-stagger` / `reveal-stagger--sm` — same as old `ds-stagger-children` (manual grids)
+ * - `reveal-delay-1` … `reveal-delay-5` — optional delay for one-off elements
+ * - Two-column detail: `ds-two-col-detail__main > *` and `__aside > *` use a shorter nested stagger
+ *
+ * prefers-reduced-motion: animations disabled; progress bars and layout stay usable.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    /* Shared tokens (charts/dialogs use --ds-* names for compatibility) */
+    --ds-motion-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ds-motion-fast: 0.2s;
+    --ds-motion-std: 0.4s;
+    --motion-ease: var(--ds-motion-out);
+    --motion-dur: var(--ds-motion-std);
+    --motion-dur-nested: 0.34s;
+    --motion-stagger: 0.035s;
+  }
+
+  @keyframes reveal-surface {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.45rem, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes reveal-surface-sm {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.2rem, 0) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes reveal-surface-nested {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.3rem, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes ds-backdrop-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ds-dialog-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 0.35rem, 0) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes ds-tooltip-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ds-chart-line-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes ds-chart-area-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ds-chart-dots-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ds-donut-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes ds-progress-width {
+    from {
+      width: 0%;
+    }
+    to {
+      width: calc(var(--bar-pct) * 1%);
+    }
+  }
+
+  /* —— single elements —— */
+  .reveal,
+  .surface-enter,
+  .ds-animate-in {
+    animation: reveal-surface var(--motion-dur) var(--motion-ease) both;
+  }
+
+  .reveal-sm,
+  .text-enter,
+  .ds-animate-in-sm {
+    animation: reveal-surface-sm calc(var(--motion-dur) * 0.95) var(--motion-ease) both;
+  }
+
+  .reveal-delay-1 {
+    animation-delay: calc(var(--motion-stagger) * 1) !important;
+  }
+  .reveal-delay-2 {
+    animation-delay: calc(var(--motion-stagger) * 2) !important;
+  }
+  .reveal-delay-3 {
+    animation-delay: calc(var(--motion-stagger) * 3) !important;
+  }
+  .reveal-delay-4 {
+    animation-delay: calc(var(--motion-stagger) * 4) !important;
+  }
+  .reveal-delay-5 {
+    animation-delay: calc(var(--motion-stagger) * 5) !important;
+  }
+
+  /* Stagger: explicit utility (grids, chip rows) */
+  .reveal-children > *:not([data-motion="none"]),
+  .reveal-stagger > *:not([data-motion="none"]),
+  .ds-stagger-children > *:not([data-motion="none"]),
+  .ds-page > *:not([data-motion="none"]),
+  .ds-page-narrow > *:not([data-motion="none"]),
+  .ds-page-wide > *:not([data-motion="none"]),
+  .ds-page-operational > *:not([data-motion="none"]),
+  .ds-page-operational-tight > *:not([data-motion="none"]) {
+    animation: reveal-surface var(--motion-dur) var(--motion-ease) both;
+  }
+
+  .reveal-stagger--sm > *:not([data-motion="none"]),
+  .ds-stagger-children--sm > *:not([data-motion="none"]) {
+    animation: reveal-surface-sm calc(var(--motion-dur) * 0.95) var(--motion-ease) both;
+  }
+
+  /* Stagger delays (max 12; light cadence) */
+  .reveal-children > *:not([data-motion="none"]):nth-child(1),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(1),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(1),
+  .ds-page > *:not([data-motion="none"]):nth-child(1),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(1),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(1),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(1),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(1) {
+    animation-delay: 0.02s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(2),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(2),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(2),
+  .ds-page > *:not([data-motion="none"]):nth-child(2),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(2),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(2),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(2),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(2) {
+    animation-delay: 0.05s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(3),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(3),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(3),
+  .ds-page > *:not([data-motion="none"]):nth-child(3),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(3),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(3),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(3),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(3) {
+    animation-delay: 0.08s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(4),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(4),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(4),
+  .ds-page > *:not([data-motion="none"]):nth-child(4),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(4),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(4),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(4),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(4) {
+    animation-delay: 0.11s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(5),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(5),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(5),
+  .ds-page > *:not([data-motion="none"]):nth-child(5),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(5),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(5),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(5),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(5) {
+    animation-delay: 0.14s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(6),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(6),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(6),
+  .ds-page > *:not([data-motion="none"]):nth-child(6),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(6),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(6),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(6),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(6) {
+    animation-delay: 0.17s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(7),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(7),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(7),
+  .ds-page > *:not([data-motion="none"]):nth-child(7),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(7),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(7),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(7),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(7) {
+    animation-delay: 0.2s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(8),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(8),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(8),
+  .ds-page > *:not([data-motion="none"]):nth-child(8),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(8),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(8),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(8),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(8) {
+    animation-delay: 0.23s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(9),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(9),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(9),
+  .ds-page > *:not([data-motion="none"]):nth-child(9),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(9),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(9),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(9),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(9) {
+    animation-delay: 0.26s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(10),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(10),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(10),
+  .ds-page > *:not([data-motion="none"]):nth-child(10),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(10),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(10),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(10),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(10) {
+    animation-delay: 0.29s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(11),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(11),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(11),
+  .ds-page > *:not([data-motion="none"]):nth-child(11),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(11),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(11),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(11),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(11) {
+    animation-delay: 0.32s;
+  }
+  .reveal-children > *:not([data-motion="none"]):nth-child(12),
+  .reveal-stagger > *:not([data-motion="none"]):nth-child(12),
+  .ds-stagger-children > *:not([data-motion="none"]):nth-child(12),
+  .ds-page > *:not([data-motion="none"]):nth-child(12),
+  .ds-page-narrow > *:not([data-motion="none"]):nth-child(12),
+  .ds-page-wide > *:not([data-motion="none"]):nth-child(12),
+  .ds-page-operational > *:not([data-motion="none"]):nth-child(12),
+  .ds-page-operational-tight > *:not([data-motion="none"]):nth-child(12) {
+    animation-delay: 0.35s;
+  }
+
+  /* Detail layout: main / aside column stacks (shorter, tighter) */
+  .ds-two-col-detail__main > *:not([data-motion="none"]) {
+    animation: reveal-surface-nested var(--motion-dur-nested) var(--motion-ease) both;
+  }
+  .ds-two-col-detail__aside > *:not([data-motion="none"]) {
+    animation: reveal-surface-nested var(--motion-dur-nested) var(--motion-ease) both;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(1),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(1) {
+    animation-delay: 0.01s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(2),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(3),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(3) {
+    animation-delay: 0.07s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(4),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(4) {
+    animation-delay: 0.1s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(5),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(5) {
+    animation-delay: 0.13s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(6),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(6) {
+    animation-delay: 0.16s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(7),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(7) {
+    animation-delay: 0.19s;
+  }
+  .ds-two-col-detail__main > *:not([data-motion="none"]):nth-child(8),
+  .ds-two-col-detail__aside > *:not([data-motion="none"]):nth-child(8) {
+    animation-delay: 0.22s;
+  }
+
+  .ds-dialog-backdrop {
+    animation: ds-backdrop-fade var(--ds-motion-fast) ease-out both;
+  }
+
+  .ds-dialog-panel {
+    animation: ds-dialog-in 0.22s var(--ds-motion-out) both;
+  }
+
+  .ds-progress-bar--entrance {
+    --bar-pct: 0;
+    animation: ds-progress-width 0.55s var(--ds-motion-out) both;
+  }
+
+  .ds-chart-line-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: ds-chart-line-draw 0.85s var(--ds-motion-out) forwards;
+  }
+
+  .ds-chart-area-fade {
+    animation: ds-chart-area-fade 0.5s var(--ds-motion-out) 0.12s both;
+  }
+
+  .ds-chart-dot-entrance {
+    animation: ds-chart-dots-in 0.25s var(--ds-motion-out) 0.45s both;
+  }
+
+  .ds-donut-entrance {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ds-donut-in 0.5s var(--ds-motion-out) both;
+  }
+
+  .ds-donut-seg-entrance {
+    animation: ds-chart-dots-in 0.35s var(--ds-motion-out) both;
+  }
+  .ds-donut-seg-entrance:nth-child(1) {
+    animation-delay: 0.04s;
+  }
+  .ds-donut-seg-entrance:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+  .ds-donut-seg-entrance:nth-child(3) {
+    animation-delay: 0.12s;
+  }
+  .ds-donut-seg-entrance:nth-child(4) {
+    animation-delay: 0.16s;
+  }
+  .ds-donut-seg-entrance:nth-child(5) {
+    animation-delay: 0.2s;
+  }
+}
+
+/* Public / auth columns: `reveal-children` only (not ds-page) */
+@media (prefers-reduced-motion: no-preference) {
+  .ds-chart-tooltip-animated {
+    animation: ds-tooltip-in 0.16s var(--ds-motion-out) both;
+  }
+
+  .ds-stat [aria-hidden="true"],
+  .ds-kpi .ds-kpi-icon {
+    transition: transform 0.22s var(--ds-motion-out), opacity 0.2s ease;
+  }
+
+  .ds-stat:hover [aria-hidden="true"] {
+    transform: scale(1.04);
+  }
+
+  .ds-kpi:hover .ds-kpi-icon {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+
+  aside.shell-sidebar .shell-nav-icon {
+    transition: transform 0.22s var(--ds-motion-out), color 0.2s ease;
+  }
+
+  aside.shell-sidebar .shell-nav-item:hover .shell-nav-icon {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-sm,
+  .surface-enter,
+  .text-enter,
+  .ds-animate-in,
+  .ds-animate-in-sm,
+  .reveal-children > *,
+  .reveal-stagger > *,
+  .reveal-stagger--sm > *,
+  .ds-stagger-children > *,
+  .ds-stagger-children--sm > *,
+  .ds-page > *,
+  .ds-page-narrow > *,
+  .ds-page-wide > *,
+  .ds-page-operational > *,
+  .ds-page-operational-tight > *,
+  .ds-two-col-detail__main > *,
+  .ds-two-col-detail__aside > *,
+  .ds-dialog-backdrop,
+  .ds-dialog-panel,
+  .ds-progress-bar--entrance,
+  .ds-chart-line-draw,
+  .ds-chart-area-fade,
+  .ds-chart-dot-entrance,
+  .ds-donut-entrance,
+  .ds-donut-seg-entrance,
+  .ds-chart-tooltip-animated {
+    animation: none !important;
+  }
+
+  .ds-progress-bar--entrance {
+    width: calc(var(--bar-pct) * 1%) !important;
+  }
+}

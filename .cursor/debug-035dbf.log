@@ -1,0 +1,2 @@
+{"sessionId":"035dbf","location":"checker.ts:finalize-snapshots","message":"Snapshot data loaded","data":{"shipmentId":"4f84601b-9aaa-4230-b77b-e9f887e16df5","snapshotCount":0,"snapshots":[],"boxSnapshotCount":0,"boxSnapshots":[]},"hypothesisId":"A,B","timestamp":1777001527220}
+{"sessionId":"035dbf","location":"checker.ts:vendor-totals","message":"Vendor totals built","data":{"vendorTotalByPart":{},"snapshotParts":[]},"hypothesisId":"C,E","timestamp":1777001527223}
