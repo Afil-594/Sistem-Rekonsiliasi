@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { insertAuditLog } from "@/lib/queries/audit-logs";
+import { getHeaderByPoNumber } from "@/lib/queries/erp-po";
 import {
   countDiscrepancies,
   getDiscrepancyById,
@@ -9,7 +10,7 @@ import {
   type DiscrepancyMonitoringRow,
 } from "@/lib/queries/discrepancies";
 import { countBoxes, listBoxesByShipmentId } from "@/lib/queries/boxes";
-import { getProfileById } from "@/lib/queries/profiles";
+import { getProfileById, listProfilesByIds } from "@/lib/queries/profiles";
 import {
   countShipments,
   countShipmentsByStatus,
@@ -74,10 +75,74 @@ async function requireSupervisorProfile(
   return { ok: true, profile };
 }
 
+/** Satu baris antrian review supervisor; label vendor selaras dengan feed pemantauan. */
+export type SupervisorIssueQueueItem = {
+  shipment: Shipment;
+  vendorLabel: string;
+};
+
+function supervisorVendorDisplayLabel(
+  profile:
+    | {
+        vendor_code: string | null;
+        full_name: string | null;
+      }
+    | null
+    | undefined,
+): string {
+  const code = profile?.vendor_code?.trim() || "Tidak diketahui";
+  const name = profile?.full_name?.trim();
+  return name ? `${code} · ${name}` : code;
+}
+
+async function buildVendorLabelMapForShipments(
+  supabase: SupabaseClient,
+  shipments: Shipment[],
+): Promise<Record<string, string>> {
+  const vendorIds = [
+    ...new Set(
+      shipments.map((s) => s.vendor_id).filter((id): id is string => !!id),
+    ),
+  ];
+  const { data: profiles } = await listProfilesByIds(supabase, vendorIds);
+  const profileById = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]));
+
+  const uniquePos = [
+    ...new Set(
+      shipments.map((s) => s.po_reference).filter((po): po is string => !!po),
+    ),
+  ];
+  const headerRows = await Promise.all(
+    uniquePos.map((po) => getHeaderByPoNumber(supabase, po)),
+  );
+  const vendorCodeByPo: Record<string, string> = {};
+  uniquePos.forEach((po, i) => {
+    const v = headerRows[i]?.data?.vendor_code?.trim();
+    if (v) {
+      vendorCodeByPo[po] = v;
+    }
+  });
+
+  const out: Record<string, string> = {};
+  for (const s of shipments) {
+    const prof = s.vendor_id ? profileById[s.vendor_id] : undefined;
+    if (prof) {
+      out[s.id] = supervisorVendorDisplayLabel(prof);
+      continue;
+    }
+    if (s.po_reference && vendorCodeByPo[s.po_reference]) {
+      out[s.id] = vendorCodeByPo[s.po_reference];
+      continue;
+    }
+    out[s.id] = "Tidak diketahui";
+  }
+  return out;
+}
+
 export async function listIssueShipments(
   supabase: SupabaseClient,
 ): Promise<
-  | { ok: true; data: Shipment[] }
+  | { ok: true; data: SupervisorIssueQueueItem[] }
   | { ok: false; status: 401; message: string }
   | { ok: false; status: 403; message: string }
 > {
@@ -94,7 +159,14 @@ export async function listIssueShipments(
     throw error;
   }
 
-  return { ok: true, data: shipments };
+  const labelMap = await buildVendorLabelMapForShipments(supabase, shipments);
+
+  const data: SupervisorIssueQueueItem[] = shipments.map((shipment) => ({
+    shipment,
+    vendorLabel: labelMap[shipment.id] ?? "Tidak diketahui",
+  }));
+
+  return { ok: true, data };
 }
 
 export async function getShipmentForSupervisor(
@@ -103,7 +175,12 @@ export async function getShipmentForSupervisor(
 ): Promise<
   | {
       ok: true;
-      data: { shipment: Shipment; boxes: Box[]; discrepancies: Discrepancy[] };
+      data: {
+        shipment: Shipment;
+        boxes: Box[];
+        discrepancies: Discrepancy[];
+        vendorLabel: string;
+      };
     }
   | ServiceError
 > {
@@ -144,7 +221,17 @@ export async function getShipmentForSupervisor(
     throw discrepanciesError;
   }
 
-  return { ok: true, data: { shipment, boxes, discrepancies } };
+  const labelMap = await buildVendorLabelMapForShipments(supabase, [shipment]);
+
+  return {
+    ok: true,
+    data: {
+      shipment,
+      boxes,
+      discrepancies,
+      vendorLabel: labelMap[shipment.id] ?? "Tidak diketahui",
+    },
+  };
 }
 
 export async function reviewDiscrepancy(
@@ -292,7 +379,7 @@ export type SupervisorMonitoringStats = {
   byDate: { date: string; count: number }[];
   topVendors: { vendorCode: string; label: string; count: number }[];
   topParts: { partNumber: string; count: number }[];
-  recentIssueShipments: Shipment[];
+  recentIssueShipments: SupervisorIssueQueueItem[];
   discrepancyFeed: SupervisorMonitoringFeedItem[];
 };
 
@@ -401,11 +488,11 @@ function vendorLabelFromRow(row: DiscrepancyMonitoringRow): {
   displayLabel: string;
 } {
   const vp = row.shipment?.vendor_profile;
-  const code = vp?.vendor_code?.trim() || "Tidak diketahui";
-  const name = vp?.full_name?.trim();
+  const displayLabel = supervisorVendorDisplayLabel(vp);
+  const vendorCode = vp?.vendor_code?.trim() || "Tidak diketahui";
   return {
-    vendorCode: code,
-    displayLabel: name ? `${code} · ${name}` : code,
+    vendorCode,
+    displayLabel,
   };
 }
 
@@ -424,7 +511,7 @@ function layerLabelFromKey(layer: string | null): { key: string; label: string }
 
 function buildSupervisorMonitoringStats(
   rows: DiscrepancyMonitoringRow[],
-  recentIssueShipments: Shipment[],
+  recentIssueShipments: SupervisorIssueQueueItem[],
 ): SupervisorMonitoringStats {
   const layerOrder = ["po_vendor", "arrival", "qc", "unspecified"] as const;
   const layerCounts = new Map<string, number>();
@@ -590,9 +677,20 @@ export async function getDashboardStats(
   if (monitoringRows.error) throw monitoringRows.error;
   if (recentIssueShipments.error) throw recentIssueShipments.error;
 
+  const recentIssueShipmentRows = recentIssueShipments.data;
+  const issueVendorLabelMap = await buildVendorLabelMapForShipments(
+    supabase,
+    recentIssueShipmentRows,
+  );
+  const recentIssueQueue: SupervisorIssueQueueItem[] =
+    recentIssueShipmentRows.map((shipment) => ({
+      shipment,
+      vendorLabel: issueVendorLabelMap[shipment.id] ?? "Tidak diketahui",
+    }));
+
   const monitoring = buildSupervisorMonitoringStats(
     monitoringRows.data,
-    recentIssueShipments.data,
+    recentIssueQueue,
   );
 
   const totalShipments = shipmentsCount.count;

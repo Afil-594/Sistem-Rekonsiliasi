@@ -362,11 +362,11 @@ export default async function SupervisorDashboardPage() {
           <p className="ds-empty mt-4">Tidak ada shipment berstatus issue.</p>
         ) : (
           <ul className="reveal-stagger mt-4 grid gap-3 sm:grid-cols-2">
-            {m.recentIssueShipments.map((s) => (
-              <li key={s.id}>
+            {m.recentIssueShipments.map(({ shipment, vendorLabel }) => (
+              <li key={shipment.id}>
                 <Link
                   className="group flex flex-col justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)] no-underline transition-all duration-200 hover:border-[var(--border-hover)] hover:shadow-md"
-                  href={`/supervisor/review/${s.id}`}
+                  href={`/supervisor/review/${shipment.id}`}
                 >
                   <div className="flex items-start gap-3">
                     <span
@@ -379,15 +379,21 @@ export default async function SupervisorDashboardPage() {
                     </span>
                     <div className="min-w-0">
                       <p className="font-mono text-base font-semibold text-[var(--navy)] group-hover:underline group-hover:decoration-[var(--border-hover)] group-hover:underline-offset-2">
-                        {s.shipment_code}
+                        {shipment.shipment_code}
                       </p>
                       <p className="text-sm text-[var(--text-secondary)]">
-                        PO: {s.po_reference ?? "—"}
+                        PO: {shipment.po_reference ?? "—"}
+                      </p>
+                      <p
+                        className="mt-1 truncate text-sm text-[var(--text-secondary)]"
+                        title={vendorLabel}
+                      >
+                        Vendor: {vendorLabel}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between border-t border-[var(--border-default)] pt-3 text-xs text-[var(--text-muted)]">
-                    <span className="font-mono text-[0.7rem]">{formatWhen(s.created_at)}</span>
+                    <span className="font-mono text-[0.7rem]">{formatWhen(shipment.created_at)}</span>
                     <span className="font-medium text-[var(--navy)]">Review →</span>
                   </div>
                 </Link>

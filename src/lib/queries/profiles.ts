@@ -18,6 +18,26 @@ export async function getProfileById(
   return { data: (data as Profile | null) ?? null, error: null };
 }
 
+export async function listProfilesByIds(
+  supabase: SupabaseClient,
+  ids: string[],
+): Promise<{ data: Profile[]; error: Error | null }> {
+  if (ids.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, role, vendor_code, created_at")
+    .in("id", ids);
+
+  if (error) {
+    return { data: [], error: new Error(error.message) };
+  }
+
+  return { data: (data as Profile[]) ?? [], error: null };
+}
+
 export async function listProfiles(
   supabase: SupabaseClient,
 ): Promise<{ data: Profile[]; error: Error | null }> {

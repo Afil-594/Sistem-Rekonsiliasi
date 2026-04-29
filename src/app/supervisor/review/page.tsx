@@ -37,7 +37,7 @@ export default async function SupervisorReviewPage({
     );
   }
 
-  const shipments = result.data;
+  const queue = result.data;
 
   return (
     <div className="ds-page-operational">
@@ -62,17 +62,17 @@ export default async function SupervisorReviewPage({
       <SectionCard
         title="Antrian tinjauan"
         lead={
-          shipments.length === 0
+          queue.length === 0
             ? "Belum ada shipment dalam antrean. Item akan tampil di sini bila perlu tindakan."
             : "Klik salah satu shipment untuk membuka review per box."
         }
       >
-        {shipments.length === 0 ? (
+        {queue.length === 0 ? (
           <div className="ds-empty">
             Tidak ada shipment yang memerlukan tinjauan saat ini.
           </div>
         ) : (
-          <SupervisorReviewShipmentList shipments={shipments} />
+          <SupervisorReviewShipmentList queue={queue} />
         )}
       </SectionCard>
     </div>

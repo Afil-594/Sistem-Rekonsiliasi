@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
+import { ROLE_HOME } from "@/lib/auth/app-role-routes";
 import { createClient } from "@/lib/supabase/client";
 import { replaceThenRefresh } from "@/lib/safeClientNavigation";
 
@@ -86,19 +87,19 @@ export function LoginForm({ redirectTo }: Props) {
         const code =
           typeof profile?.vendor_code === "string" ? profile.vendor_code.trim() : "";
         if (profile?.role === "vendor" && code !== "") {
-          replaceThenRefresh(router, "/vendor/purchase-orders");
+          replaceThenRefresh(router, ROLE_HOME.vendor);
           return;
         }
         if (profile?.role === "checker") {
-          replaceThenRefresh(router, "/checker/arrival");
+          replaceThenRefresh(router, ROLE_HOME.checker);
           return;
         }
         if (profile?.role === "superadmin") {
-          replaceThenRefresh(router, "/superadmin/audit-trail");
+          replaceThenRefresh(router, ROLE_HOME.superadmin);
           return;
         }
         if (profile?.role === "supervisor") {
-          replaceThenRefresh(router, "/supervisor");
+          replaceThenRefresh(router, ROLE_HOME.supervisor);
           return;
         }
       }

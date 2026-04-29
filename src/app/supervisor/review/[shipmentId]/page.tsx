@@ -45,7 +45,7 @@ export default async function SupervisorShipmentDetailPage({
     );
   }
 
-  const { shipment, boxes, discrepancies } = result.data;
+  const { shipment, boxes, discrepancies, vendorLabel } = result.data;
   const boxCodeById = Object.fromEntries(
     boxes.map((box) => [box.id, box.box_code]),
   );
@@ -142,6 +142,7 @@ export default async function SupervisorShipmentDetailPage({
       <div className="min-w-0">
         <SupervisorReviewDetailSummary
           shipment={shipment}
+          vendorLabel={vendorLabel}
           openCount={openCount}
           reviewedCount={reviewedCount}
           totalCount={discrepancies.length}

@@ -13,6 +13,8 @@ function formatWhen(iso: string | null) {
 
 type Props = {
   shipment: Shipment;
+  /** Selaras dengan kolom Vendor di aktivitas supervisor (`kode · nama` bila ada). */
+  vendorLabel: string;
   openCount: number;
   reviewedCount: number;
   totalCount: number;
@@ -25,6 +27,7 @@ type Props = {
  */
 export function SupervisorReviewDetailSummary({
   shipment,
+  vendorLabel,
   openCount,
   reviewedCount,
   totalCount,
@@ -56,6 +59,10 @@ export function SupervisorReviewDetailSummary({
               <span className="font-mono font-medium text-[var(--text-primary)]">
                 {shipment.po_reference ?? "—"}
               </span>
+            </p>
+            <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
+              <span className="text-[var(--text-muted)]">Vendor</span>{" "}
+              <span className="font-medium text-[var(--text-primary)]">{vendorLabel}</span>
             </p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import type { SupervisorIssueQueueItem } from "@/lib/services/supervisor";
 
 function formatWhen(iso: string | null) {
   if (!iso) {
@@ -9,28 +10,20 @@ function formatWhen(iso: string | null) {
   return Number.isNaN(value.getTime()) ? iso : value.toLocaleString();
 }
 
-export type SupervisorReviewShipmentListRow = {
-  id: string;
-  shipment_code: string;
-  status: string | null;
-  po_reference: string | null;
-  created_at: string | null;
-};
-
 type Props = {
-  shipments: SupervisorReviewShipmentListRow[];
+  queue: SupervisorIssueQueueItem[];
 };
 
 /**
  * Card grid for supervisor issue-review queue — matches checker/vendor list density.
  */
-export function SupervisorReviewShipmentList({ shipments }: Props) {
+export function SupervisorReviewShipmentList({ queue }: Props) {
   return (
     <ul
       className="ds-card-grid m-0 list-none p-0"
       aria-label="Shipment perlu review"
     >
-      {shipments.map((shipment) => (
+      {queue.map(({ shipment, vendorLabel }) => (
         <li key={shipment.id} className="min-w-0">
           <Link
             className="ds-entity-tile group flex h-full flex-col pl-4 ds-entity-tile--status ds-entity-tile--status-issue"
@@ -56,15 +49,18 @@ export function SupervisorReviewShipmentList({ shipments }: Props) {
                 Buka →
               </span>
             </div>
-            <div className="mt-2.5 flex flex-col gap-0.5 text-[0.7rem] leading-snug text-[var(--text-muted)] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-0 sm:text-xs">
+            <div className="mt-2.5 flex min-w-0 flex-col gap-0.5 text-[0.7rem] leading-snug text-[var(--text-muted)] sm:text-xs">
               <span>
                 PO:{" "}
                 <span className="font-medium text-[var(--text-secondary)]">
                   {shipment.po_reference ?? "—"}
                 </span>
               </span>
-              <span className="hidden sm:inline" aria-hidden>
-                ·
+              <span className="min-w-0 truncate" title={vendorLabel}>
+                Vendor:{" "}
+                <span className="font-medium text-[var(--text-secondary)]">
+                  {vendorLabel}
+                </span>
               </span>
               <span>Dibuat {formatWhen(shipment.created_at)}</span>
             </div>

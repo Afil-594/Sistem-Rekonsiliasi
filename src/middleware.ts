@@ -1,19 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-/** Role app routes: direct URL access without a session redirects to login. */
-const PROTECTED_PREFIXES = [
-  "/vendor",
-  "/checker",
-  "/supervisor",
-  "/superadmin",
-] as const;
-
-function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
+import {
+  isProtectedAppPath,
+  ROLE_HOME,
+  roleForProtectedPrefix,
+} from "@/lib/auth/app-role-routes";
+import type { Profile } from "@/types/profile";
 
 /** Same rules as login page `safeRedirectPath`: internal path only. */
 function loginNextParam(pathname: string, search: string): string {
@@ -22,6 +14,12 @@ function loginNextParam(pathname: string, search: string): string {
     return "/";
   }
   return full;
+}
+
+function copyCookies(from: NextResponse, to: NextResponse) {
+  from.cookies.getAll().forEach((cookie) => {
+    to.cookies.set(cookie);
+  });
 }
 
 export async function middleware(request: NextRequest) {
@@ -60,13 +58,51 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  if (isProtectedPath(pathname) && !user) {
+  if (isProtectedAppPath(pathname) && !user) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("next", loginNextParam(pathname, search));
     const redirectResponse = NextResponse.redirect(redirectUrl);
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie);
-    });
+    copyCookies(supabaseResponse, redirectResponse);
+    return redirectResponse;
+  }
+
+  if (user && isProtectedAppPath(pathname)) {
+    const requiredRole = roleForProtectedPrefix(pathname);
+    if (!requiredRole) {
+      return supabaseResponse;
+    }
+
+    const { data: row, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return supabaseResponse;
+    }
+
+    const actualRole = (row as { role: Profile["role"] } | null)?.role ?? null;
+
+    if (actualRole === null) {
+      const redirectResponse = NextResponse.redirect(new URL("/", request.url));
+      copyCookies(supabaseResponse, redirectResponse);
+      return redirectResponse;
+    }
+
+    if (actualRole === requiredRole) {
+      return supabaseResponse;
+    }
+
+    const destination = ROLE_HOME[actualRole] ?? "/";
+    if (destination === pathname) {
+      return supabaseResponse;
+    }
+
+    const redirectResponse = NextResponse.redirect(
+      new URL(destination, request.url),
+    );
+    copyCookies(supabaseResponse, redirectResponse);
     return redirectResponse;
   }
 
