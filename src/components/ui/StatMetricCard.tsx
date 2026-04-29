@@ -5,6 +5,7 @@ import {
   BarChart2,
   Boxes,
   CheckCircle2,
+  ClipboardList,
   Package,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -37,6 +38,7 @@ const STAT_METRIC_ICONS = {
   barChart2: BarChart2,
   alertOctagon: AlertOctagon,
   checkCircle2: CheckCircle2,
+  clipboardList: ClipboardList,
 } as const;
 
 export type StatMetricIconName = keyof typeof STAT_METRIC_ICONS;

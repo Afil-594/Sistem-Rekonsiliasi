@@ -12,6 +12,10 @@ import {
 import { countBoxes, listBoxesByShipmentId } from "@/lib/queries/boxes";
 import { getProfileById, listProfilesByIds } from "@/lib/queries/profiles";
 import {
+  type DoneShipmentQualityAggregate,
+  getDoneShipmentQualityAggregate,
+} from "@/lib/queries/supervisor-dashboard";
+import {
   countShipments,
   countShipmentsByStatus,
   getShipmentById,
@@ -383,14 +387,14 @@ export type SupervisorMonitoringStats = {
   discrepancyFeed: SupervisorMonitoringFeedItem[];
 };
 
-/** Simple rates from `shipments` / `discrepancies` row counts; safe when total shipments is 0. */
+/** Rasio dari shipment berstatus `done` saja; rata-rata unit bermasalah per shipment done. */
 export type SupervisorDashboardKpis = {
-  /** `issue` status count / total shipments, 0–100, or null if no shipments. */
-  shipmentIssueRatePercent: number | null;
-  /** `done` status count / total shipments, 0–100, or null if no shipments. */
-  shipmentDoneRatePercent: number | null;
-  /** Total discrepancy rows / total shipments, or null if no shipments. */
-  discrepancyPerShipment: number | null;
+  /** Done tanpa baris selisih / semua done, 0–100, atau null jika tidak ada shipment done. */
+  shipmentDoneCleanRatePercent: number | null;
+  /** Done dengan minimal satu selisih / semua done, 0–100, atau null jika tidak ada shipment done. */
+  shipmentDoneProblemRatePercent: number | null;
+  /** Σ(kotak bermasalah + baris tanpa kotak) per shipment done, dibagi jumlah shipment done. */
+  avgProblemUnitsPerDoneShipment: number | null;
 };
 
 export type DashboardStats = {
@@ -398,29 +402,31 @@ export type DashboardStats = {
   totalBoxes: number;
   totalDiscrepancies: number;
   issueShipments: number;
-  doneShipments: number;
+  /** Shipment `done` tanpa catatan selisih (kedatangan–QC bersih). */
+  doneCleanShipments: number;
+  /** Shipment `done` dengan minimal satu baris di `discrepancies`. */
+  doneProblemShipments: number;
   kpis: SupervisorDashboardKpis;
   recentShipments: Shipment[];
   monitoring: SupervisorMonitoringStats;
 };
 
 function buildSupervisorDashboardKpis(
-  totalShipments: number,
-  issueShipments: number,
-  doneShipments: number,
-  totalDiscrepancies: number,
+  doneQuality: DoneShipmentQualityAggregate,
 ): SupervisorDashboardKpis {
-  if (totalShipments <= 0) {
+  const { doneCount, cleanDoneCount, problemDoneCount, sumProblemUnits } =
+    doneQuality;
+  if (doneCount <= 0) {
     return {
-      shipmentIssueRatePercent: null,
-      shipmentDoneRatePercent: null,
-      discrepancyPerShipment: null,
+      shipmentDoneCleanRatePercent: null,
+      shipmentDoneProblemRatePercent: null,
+      avgProblemUnitsPerDoneShipment: null,
     };
   }
   return {
-    shipmentIssueRatePercent: (issueShipments / totalShipments) * 100,
-    shipmentDoneRatePercent: (doneShipments / totalShipments) * 100,
-    discrepancyPerShipment: totalDiscrepancies / totalShipments,
+    shipmentDoneCleanRatePercent: (cleanDoneCount / doneCount) * 100,
+    shipmentDoneProblemRatePercent: (problemDoneCount / doneCount) * 100,
+    avgProblemUnitsPerDoneShipment: sumProblemUnits / doneCount,
   };
 }
 
@@ -653,29 +659,29 @@ export async function getDashboardStats(
     boxesCount,
     discrepanciesCount,
     issueCount,
-    doneCount,
     recentShipments,
     monitoringRows,
     recentIssueShipments,
+    doneQualityResult,
   ] = await Promise.all([
     countShipments(supabase),
     countBoxes(supabase),
     countDiscrepancies(supabase),
     countShipmentsByStatus(supabase, "issue"),
-    countShipmentsByStatus(supabase, "done"),
     listRecentShipments(supabase, 5),
     listDiscrepanciesForSupervisorMonitoring(supabase),
     listRecentShipmentsByStatus(supabase, "issue", 10),
+    getDoneShipmentQualityAggregate(supabase),
   ]);
 
   if (shipmentsCount.error) throw shipmentsCount.error;
   if (boxesCount.error) throw boxesCount.error;
   if (discrepanciesCount.error) throw discrepanciesCount.error;
   if (issueCount.error) throw issueCount.error;
-  if (doneCount.error) throw doneCount.error;
   if (recentShipments.error) throw recentShipments.error;
   if (monitoringRows.error) throw monitoringRows.error;
   if (recentIssueShipments.error) throw recentIssueShipments.error;
+  if (doneQualityResult.error) throw doneQualityResult.error;
 
   const recentIssueShipmentRows = recentIssueShipments.data;
   const issueVendorLabelMap = await buildVendorLabelMapForShipments(
@@ -694,12 +700,8 @@ export async function getDashboardStats(
   );
 
   const totalShipments = shipmentsCount.count;
-  const kpis = buildSupervisorDashboardKpis(
-    totalShipments,
-    issueCount.count,
-    doneCount.count,
-    discrepanciesCount.count,
-  );
+  const doneQuality = doneQualityResult.data;
+  const kpis = buildSupervisorDashboardKpis(doneQuality);
 
   return {
     ok: true,
@@ -708,7 +710,8 @@ export async function getDashboardStats(
       totalBoxes: boxesCount.count,
       totalDiscrepancies: discrepanciesCount.count,
       issueShipments: issueCount.count,
-      doneShipments: doneCount.count,
+      doneCleanShipments: doneQuality.cleanDoneCount,
+      doneProblemShipments: doneQuality.problemDoneCount,
       kpis,
       recentShipments: recentShipments.data,
       monitoring,

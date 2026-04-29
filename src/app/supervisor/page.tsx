@@ -142,7 +142,7 @@ export default async function SupervisorDashboardPage() {
 
       <section className="ds-section" aria-label="KPI operasional">
         <p className="ds-section-label">KPI utama</p>
-        <div className="reveal-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="reveal-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatMetricCard
             label="Total shipment"
             value={stats.totalShipments}
@@ -155,57 +155,64 @@ export default async function SupervisorDashboardPage() {
             icon="barChart2"
           />
           <StatMetricCard
-            label="Shipment status issue"
+            label="Menunggu tinjauan supervisor"
             value={stats.issueShipments}
             tone="danger"
             icon="alertOctagon"
           />
           <StatMetricCard
-            label="Shipment selesai (done)"
-            value={stats.doneShipments}
+            label="Shipment done bersih"
+            value={stats.doneCleanShipments}
             tone="success"
             icon="checkCircle2"
+          />
+          <StatMetricCard
+            label="Shipment done bermasalah"
+            value={stats.doneProblemShipments}
+            tone="neutral"
+            icon="clipboardList"
           />
         </div>
       </section>
 
-      <section className="ds-section-tint" aria-label="KPI rasio shipment dan selisih">
-        <h2 className="ds-h2">Rasio shipment dan selisih</h2>
+      <section className="ds-section-tint" aria-label="KPI rasio shipment selesai">
+        <h2 className="ds-h2">Rasio shipment selesai</h2>
         <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-          Dari jumlah baris <span className="font-mono">shipments</span> (status{" "}
-          <span className="font-mono">issue</span> / <span className="font-mono">done</span>) dan
-          seluruh baris <span className="font-mono">discrepancies</span>. Persentase memakai
-          total shipment sebagai penyebut; jika belum ada shipment, tampil &quot;—&quot;.
+          Hanya shipment berstatus <span className="font-mono">done</span> (alur gudang selesai).
+          Dua porsi saling melengkapi: tanpa catatan selisih vs dengan selisih di{" "}
+          <span className="font-mono">discrepancies</span>. Persentase memakai jumlah shipment{" "}
+          <span className="font-mono">done</span> sebagai penyebut; jika belum ada yang{" "}
+          <span className="font-mono">done</span>, tampil &quot;—&quot;.
         </p>
         <div className="reveal-stagger mt-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)] p-3 shadow-[var(--shadow-sm)]">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-3">
             <div className="flex h-full min-h-0 min-w-0 flex-col items-center overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--surface-elevated)]/50 p-3">
               <SemicircleAnimatedMetric
-                value={stats.kpis.shipmentIssueRatePercent}
-                variant="danger"
-                label="Porsi shipment issue"
-                shortLabel="Porsi shipment issue"
+                value={stats.kpis.shipmentDoneCleanRatePercent}
+                variant="success"
+                label="Porsi shipment done bersih"
+                shortLabel="Porsi shipment done bersih"
               />
             </div>
             <div className="flex h-full min-h-0 min-w-0 flex-col items-center overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--surface-elevated)]/50 p-3">
               <SemicircleAnimatedMetric
-                value={stats.kpis.shipmentDoneRatePercent}
-                variant="success"
-                label="Porsi shipment selesai"
-                shortLabel="Porsi shipment selesai"
+                value={stats.kpis.shipmentDoneProblemRatePercent}
+                variant="danger"
+                label="Porsi shipment done bermasalah"
+                shortLabel="Porsi shipment done bermasalah"
               />
             </div>
             <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--surface-elevated)]/50 p-3">
               <p className="shrink-0 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Selisih rata-rata
+                Rata-rata unit bermasalah
               </p>
               <div className="flex min-h-0 flex-1 items-center justify-center py-1">
                 <p className="text-center text-[2rem] font-medium leading-tight tabular-nums text-[var(--text-primary)]">
-                  {formatRatio(stats.kpis.discrepancyPerShipment)}
+                  {formatRatio(stats.kpis.avgProblemUnitsPerDoneShipment)}
                 </p>
               </div>
               <p className="shrink-0 text-center text-xs text-[var(--text-muted)]">
-                jumlah selisih ÷ total shipment
+                per shipment done dibagi semua shipment done
               </p>
               <div
                 className="mt-3 h-1 w-full overflow-hidden rounded-full"
@@ -217,7 +224,9 @@ export default async function SupervisorDashboardPage() {
               >
                 <div
                   className="h-full rounded-full bg-[var(--info)] transition-[width] duration-300 ease-out"
-                  style={{ width: `${ratioBarWidthPercent(stats.kpis.discrepancyPerShipment)}%` }}
+                  style={{
+                    width: `${ratioBarWidthPercent(stats.kpis.avgProblemUnitsPerDoneShipment)}%`,
+                  }}
                 />
               </div>
             </div>
