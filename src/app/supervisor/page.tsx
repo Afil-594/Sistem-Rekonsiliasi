@@ -133,7 +133,7 @@ export default async function SupervisorDashboardPage() {
               className="ds-btn ds-btn-secondary inline-flex shrink-0 items-center justify-center gap-2"
               href="/supervisor/activities"
             >
-              History shipmnet
+              History shipment
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
@@ -449,7 +449,7 @@ export default async function SupervisorDashboardPage() {
               className="font-medium text-[var(--navy)] underline decoration-[var(--border-hover)] underline-offset-2 hover:text-[var(--navy-hover)]"
               href="/supervisor/activities"
             >
-              halaman History shipmnet
+              halaman History shipment
             </Link>
             .
           </p>

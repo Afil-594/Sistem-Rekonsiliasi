@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Box } from "@/types/box";
 import { statusBadgeClassName } from "@/lib/ui/status-styles";
@@ -10,6 +10,8 @@ type Props = {
   shipmentId: string;
   boxes: Box[];
   showQc: boolean;
+  /** Buka dialog QC & scroll ke baris jika box masih menunggu QC (dari query `qcBox`). */
+  initialQcBoxId?: string | null;
 };
 
 function statusLabel(status: Box["status"]) {
@@ -28,12 +30,43 @@ function statusLabel(status: Box["status"]) {
   return status ?? "—";
 }
 
-export function ArrivalBoxList({ shipmentId, boxes, showQc }: Props) {
+export function ArrivalBoxList({
+  shipmentId,
+  boxes,
+  showQc,
+  initialQcBoxId = null,
+}: Props) {
   const router = useRouter();
   const [openBoxId, setOpenBoxId] = useState<string | null>(null);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
+  const appliedInitialQcRef = useRef<string | null>(null);
 
   const openBox = boxes.find((box) => box.id === openBoxId) ?? null;
+
+  useEffect(() => {
+    const raw = initialQcBoxId?.trim();
+    if (!raw) {
+      appliedInitialQcRef.current = null;
+      return;
+    }
+    if (appliedInitialQcRef.current === raw) {
+      return;
+    }
+    const box = boxes.find((b) => b.id === raw);
+    if (!box) {
+      return;
+    }
+    appliedInitialQcRef.current = raw;
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`arrival-box-row-${box.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    if (showQc && box.status === "arrived") {
+      setLastMessage(null);
+      setOpenBoxId(box.id);
+    }
+  }, [initialQcBoxId, boxes, showQc]);
 
   if (boxes.length === 0) {
     return (
@@ -73,6 +106,7 @@ export function ArrivalBoxList({ shipmentId, boxes, showQc }: Props) {
               return (
                 <tr
                   key={row.id}
+                  id={`arrival-box-row-${row.id}`}
                   className={`ds-trow ${
                     needsQc
                       ? "bg-amber-50/90 ring-1 ring-amber-300/50 ring-inset dark:bg-amber-950/30 dark:ring-amber-700/40"

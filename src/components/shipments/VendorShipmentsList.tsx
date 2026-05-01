@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
-  ChevronRight,
   Inbox,
   MapPin,
   Package,
@@ -180,9 +179,8 @@ export function VendorShipmentsList({ rows, currentFilter }: Props) {
                             {s.description}
                           </p>
                         </div>
-                        <span className="mt-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 py-1 text-[0.65rem] font-semibold text-[var(--navy)] shadow-sm transition-colors group-hover:border-[color-mix(in_srgb,var(--navy)_18%,var(--border-default))] group-hover:bg-[var(--navy-muted)]/40 sm:text-xs">
-                          Buka
-                          <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                        <span className="mt-0.5 inline-flex shrink-0 items-center text-[0.65rem] font-semibold text-[var(--navy)] underline-offset-2 transition-colors group-hover:underline sm:text-xs">
+                          {"Lihat detail PO >"}
                         </span>
                       </div>
                       <div className="ds-summary-strip mt-2.5 flex-wrap items-center gap-x-2 gap-y-1.5 py-2 pl-0.5 pr-2 text-[0.7rem] sm:text-xs">

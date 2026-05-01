@@ -18,10 +18,14 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function CheckerArrivalShipmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ shipmentId: string }>;
+  searchParams: Promise<{ qcBox?: string }>;
 }) {
   const { shipmentId } = await params;
+  const { qcBox: qcBoxRaw } = await searchParams;
+  const qcBox = qcBoxRaw?.trim() || null;
   const supabase = await createClient();
 
   let result: Awaited<ReturnType<typeof getShipmentForChecker>>;
@@ -200,6 +204,7 @@ export default async function CheckerArrivalShipmentPage({
           shipmentId={shipment.id}
           boxes={boxes}
           showQc={showQc}
+          initialQcBoxId={qcBox}
         />
       </div>
     </section>

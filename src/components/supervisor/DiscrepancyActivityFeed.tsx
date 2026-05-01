@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { ClipboardCheck, Eye } from "lucide-react";
 import { LayerBadge } from "@/components/ui/LayerBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import type { SupervisorMonitoringFeedItem } from "@/lib/services/supervisor";
+import type {
+  SupervisorMonitoringFeedItem,
+  SupervisorShipmentActivityRow,
+} from "@/lib/services/supervisor";
 
 export function formatDiscrepancyWhen(iso: string | null) {
   if (!iso) return "—";
@@ -84,8 +88,98 @@ export function DiscrepancyActivityTable({ rows }: TableProps) {
   );
 }
 
-const DEFAULT_PREVIEW_MAX = 6;
+function formatShipmentDiscrepancyRollup(row: SupervisorShipmentActivityRow): string {
+  if (row.totalDiscrepancies <= 0) {
+    return "Tanpa selisih tercatat";
+  }
+  const chunks: string[] = [`${row.totalDiscrepancies} baris`];
+  if (row.openDiscrepancies > 0) {
+    chunks.push(`${row.openDiscrepancies} terbuka`);
+  }
+  if (row.settledDiscrepancies > 0) {
+    chunks.push(`${row.settledDiscrepancies} ditinjau/selesai`);
+  }
+  return chunks.join(" · ");
+}
 
+type ShipmentActivityProps = {
+  rows: SupervisorShipmentActivityRow[];
+};
+
+/** Tabel History shipment supervisor: satu baris per shipment (status issue | done). */
+export function SupervisorShipmentActivityTable({ rows }: ShipmentActivityProps) {
+  if (rows.length === 0) {
+    return (
+      <p className="ds-muted py-1">
+        Belum ada shipment dengan status <span className="font-mono">issue</span> atau{" "}
+        <span className="font-mono">done</span>.
+      </p>
+    );
+  }
+  return (
+    <div className="ds-table-wrap">
+      <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+        <thead>
+          <tr className="ds-thead">
+            <th className="ds-tcell py-2.5 pl-3">Terakhir aktivitas</th>
+            <th className="ds-tcell">Shipment</th>
+            <th className="ds-tcell">Vendor</th>
+            <th className="ds-tcell">Ringkasan selisih</th>
+            <th className="ds-tcell whitespace-nowrap pr-3">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.shipmentId} className="ds-trow">
+              <td className="ds-tcell--meta whitespace-nowrap px-3 py-2.5">
+                <span className="inline-block rounded-md bg-[var(--surface-elevated)] px-2 py-0.5 font-mono text-[0.7rem] text-[var(--text-secondary)]">
+                  {formatDiscrepancyWhen(row.lastActivityAt)}
+                </span>
+              </td>
+              <td className="px-3 py-2.5">
+                <div className="ds-tcell--mono font-medium text-[var(--text-primary)]">
+                  {row.shipmentCode}
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">
+                  {row.poReference ? `PO ${row.poReference}` : "—"}
+                </div>
+                <div className="mt-1">
+                  <StatusBadge status={row.shipmentStatus} />
+                </div>
+              </td>
+              <td className="max-w-[200px] truncate px-3 py-2.5 text-xs text-[var(--text-secondary)]">
+                {row.vendorLabel}
+              </td>
+              <td className="max-w-[240px] px-3 py-2.5 text-xs leading-snug text-[var(--text-secondary)]">
+                {formatShipmentDiscrepancyRollup(row)}
+              </td>
+              <td className="ds-tcell--meta whitespace-nowrap px-3 py-2.5 pr-4 align-middle">
+                <Link
+                  href={`/supervisor/review/${row.shipmentId}`}
+                  className="ds-btn ds-btn-secondary inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold no-underline"
+                >
+                  {row.shipmentStatus === "done" ? (
+                    <>
+                      <Eye className="size-3.5 shrink-0 opacity-90" aria-hidden />
+                      Lihat detail
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardCheck className="size-3.5 shrink-0 opacity-90" aria-hidden />
+                      Review
+                    </>
+                  )}
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const DEFAULT_PREVIEW_MAX = 6;
 type PreviewProps = {
   rows: SupervisorMonitoringFeedItem[];
   /** Cuplikan di dashboard: 5–8 disarankan. */
@@ -102,7 +196,7 @@ export function DiscrepancyActivityPreview({
 
   const items = rows.slice(0, maxItems);
   return (
-    <ul className="flex flex-col gap-2.5" aria-label="Cuplikan History shipmnet terbaru">
+    <ul className="flex flex-col gap-2.5" aria-label="Cuplikan History shipment terbaru">
       {items.map((row) => (
         <li
           key={row.id}

@@ -3,7 +3,10 @@ import { SupervisorReviewShipmentList } from "@/components/supervisor/Supervisor
 import { listIssueShipments } from "@/lib/services/supervisor";
 import { LoadErrorState } from "@/components/ui/LoadErrorState";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { userFacingErrorText, userFacingLoadError } from "@/lib/utils/load-failure";
+import {
+  userFacingErrorText,
+  userFacingLoadError,
+} from "@/lib/utils/load-failure";
 
 export default async function SupervisorReviewPage({
   searchParams,
@@ -41,13 +44,15 @@ export default async function SupervisorReviewPage({
 
   return (
     <div className="ds-page-operational">
-      <div className="ds-section-tint border-l-[3px] border-l-[var(--navy)]">
+      <div className="ds-section-tint rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-[3px] border-l-[var(--navy)] bg-[var(--surface)] px-4 py-5 sm:px-6 sm:py-6">
         <header className="space-y-2">
-          <p className="ds-section-label mb-1">Supervisor</p>
-          <h1 className="ds-h1">Review discrepancy</h1>
-          <p className="ds-lead max-w-2xl">
-            Shipment dengan kondisi bermasalah yang memerlukan keputusan supervisor (termasuk
-            retur).
+          <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-[var(--navy)] opacity-95">
+            Supervisor
+          </p>
+          <h1 className="ds-h1 m-0">Review discrepancy</h1>
+          <p className="ds-lead m-0 max-w-2xl text-[var(--text-secondary)]">
+            Shipment dengan kondisi bermasalah yang memerlukan keputusan
+            supervisor.
           </p>
         </header>
       </div>
@@ -60,20 +65,14 @@ export default async function SupervisorReviewPage({
       ) : null}
 
       <SectionCard
-        title="Antrian tinjauan"
+        title="Antrian discrepancy"
         lead={
           queue.length === 0
-            ? "Belum ada shipment dalam antrean. Item akan tampil di sini bila perlu tindakan."
-            : "Klik salah satu shipment untuk membuka review per box."
+            ? "Belum ada shipment dalam antrian. Item akan muncul bila ada yang perlu ditinjau."
+            : "Filter, urutkan, dan buka shipment untuk mengambil keputusan per selisih."
         }
       >
-        {queue.length === 0 ? (
-          <div className="ds-empty">
-            Tidak ada shipment yang memerlukan tinjauan saat ini.
-          </div>
-        ) : (
-          <SupervisorReviewShipmentList queue={queue} />
-        )}
+        <SupervisorReviewShipmentList queue={queue} />
       </SectionCard>
     </div>
   );

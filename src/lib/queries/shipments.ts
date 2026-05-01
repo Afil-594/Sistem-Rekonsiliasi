@@ -50,7 +50,10 @@ export async function listShipmentsByPoAndVendor(
 export async function listShipmentsByVendorId(
   supabase: SupabaseClient,
   vendorId: string,
-  options?: { status?: NonNullable<Shipment["status"]> },
+  options?: {
+    status?: NonNullable<Shipment["status"]>;
+    statusIn?: readonly NonNullable<Shipment["status"]>[];
+  },
 ): Promise<{ data: Shipment[]; error: Error | null }> {
   let query = supabase
     .from("shipments")
@@ -58,7 +61,10 @@ export async function listShipmentsByVendorId(
     .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false });
 
-  if (options?.status) {
+  const inList = options?.statusIn;
+  if (inList?.length) {
+    query = query.in("status", [...inList]);
+  } else if (options?.status) {
     query = query.eq("status", options.status);
   }
 
@@ -88,6 +94,30 @@ export async function listShipmentsByStatus(
   return { data: (data ?? []) as Shipment[], error: null };
 }
 
+/** Untuk History shipment supervisor: beberapa status dalam satu query. */
+export async function listShipmentsByStatuses(
+  supabase: SupabaseClient,
+  statuses: readonly NonNullable<Shipment["status"]>[],
+  limit: number,
+): Promise<{ data: Shipment[]; error: Error | null }> {
+  if (!statuses.length || limit <= 0) {
+    return { data: [], error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("id, shipment_code, po_reference, status, vendor_id, created_at")
+    .in("status", [...statuses])
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    return { data: [], error: new Error(error.message) };
+  }
+
+  return { data: (data ?? []) as Shipment[], error: null };
+}
+
 export async function listShipmentsByIds(
   supabase: SupabaseClient,
   shipmentIds: string[],
@@ -107,6 +137,32 @@ export async function listShipmentsByIds(
   }
 
   return { data: (data ?? []) as Shipment[], error: null };
+}
+
+/**
+ * Nomor PO (`po_reference`) yang sudah punya minimal satu baris shipment untuk vendor ini.
+ */
+export async function listPoReferencesShippedByVendorId(
+  supabase: SupabaseClient,
+  vendorProfileId: string,
+): Promise<{ data: string[]; error: Error | null }> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("po_reference")
+    .eq("vendor_id", vendorProfileId);
+
+  if (error) {
+    return { data: [], error: new Error(error.message) };
+  }
+
+  const seen = new Set<string>();
+  for (const row of data ?? []) {
+    const raw = row.po_reference;
+    const po =
+      typeof raw === "string" ? raw.trim() : "";
+    if (po !== "") seen.add(po);
+  }
+  return { data: [...seen], error: null };
 }
 
 export async function getShipmentById(

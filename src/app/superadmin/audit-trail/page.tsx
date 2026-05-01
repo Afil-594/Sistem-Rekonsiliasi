@@ -1,54 +1,38 @@
-import { ClipboardList, Filter, History } from "lucide-react";
+import { Calendar, ClipboardList, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { AuditTrailLogRow } from "@/components/superadmin/AuditTrailLogRow";
+import { AuditTrailExplorer } from "@/components/superadmin/AuditTrailExplorer";
+import { StatMetricCard } from "@/components/ui/StatMetricCard";
+import { KpiCard } from "@/components/ui/KpiCard";
 import {
-  getAuditTrail,
-  getAuditTrailFilterOptions,
-} from "@/lib/services/audit-trail";
+  getAuditLogSeverityCounts,
+  getAuditTrailAggregateStats,
+  listAuditTrailActorOptions,
+  type AuditLogFilters,
+} from "@/lib/queries/audit-logs";
+import { auditTrailBaseFilters, type AuditSeverityTab } from "@/lib/superadmin/audit-trail-url-params";
+import { getAuditTrail, getAuditTrailFilterOptions } from "@/lib/services/audit-trail";
 import { userFacingErrorText, userFacingLoadError } from "@/lib/utils/load-failure";
 import { LoadErrorState } from "@/components/ui/LoadErrorState";
-import type { AuditLogWithUser } from "@/types/audit-log";
+import { formatAuditTrailTimestamp } from "@/lib/utils/audit-trail-ui";
 
 const PAGE_SIZE = 30;
 
-function formatTimestamp(iso: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
-
-function formatAction(action: string) {
+function formatActionToken(action: string): string {
   return action.replaceAll("_", " ");
 }
 
-/** Display label for well-known actions (payload / docs still use canonical action string). */
-function formatActionLabel(action: string) {
+function formatActionLabel(action: string): string {
   if (action === "finalize_scan") return "Selesaikan scan inbound";
-  return formatAction(action);
+  return formatActionToken(action);
 }
 
-function shortUserId(id: string) {
-  return id.length > 8 ? `${id.slice(0, 8)}…` : id;
-}
-
-function userCellLabel(log: AuditLogWithUser) {
-  const name = log.profiles?.full_name;
-  if (typeof name === "string" && name.trim() !== "") {
-    return name.trim();
+function buildUrlQuery(overrides: Record<string, string | undefined>): string {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(overrides)) {
+    if (v && v.length > 0) qs.set(k, v);
   }
-  if (log.user_id) {
-    return shortUserId(log.user_id);
-  }
-  return "—";
+  const str = qs.toString();
+  return str ? `?${str}` : "";
 }
 
 export default async function AuditTrailPage({
@@ -57,35 +41,66 @@ export default async function AuditTrailPage({
   searchParams: Promise<{
     action?: string;
     target_table?: string;
+    user_id?: string;
+    date_from?: string;
+    date_to?: string;
+    q?: string;
+    severity?: string;
     page?: string;
   }>;
 }) {
   const params = await searchParams;
   const currentPage = Math.max(1, Number(params.page) || 1);
   const offset = (currentPage - 1) * PAGE_SIZE;
+  const base = auditTrailBaseFilters(params);
+  const severity: AuditSeverityTab = base.severity ?? "all";
+
+  const baseListFilters: AuditLogFilters = {
+    ...base,
+    limit: PAGE_SIZE,
+    offset,
+  };
+
+  const aggregateFilters: Omit<AuditLogFilters, "limit" | "offset" | "severity"> = {
+    action: base.action,
+    target_table: base.target_table,
+    user_id: base.user_id,
+    created_from: base.created_from,
+    created_to: base.created_to,
+    search: base.search,
+  };
 
   const supabase = await createClient();
 
-  const [trailResult, optionsResult] = await Promise.all([
-    getAuditTrail(supabase, {
-      action: params.action || undefined,
-      target_table: params.target_table || undefined,
-      limit: PAGE_SIZE,
-      offset,
-    }).catch((e: unknown) => {
-      const { message, detailHint } = userFacingLoadError(
-        e,
-        "Gagal memuat jejak audit",
-      );
-      return {
-        ok: false as const,
-        status: 500 as const,
-        message,
-        detailHint,
-      };
-    }),
-    getAuditTrailFilterOptions(supabase).catch(() => null),
-  ]);
+  const [trailResult, optionsResult, actorsResult, aggregatesResult, severityResult] =
+    await Promise.all([
+      getAuditTrail(supabase, baseListFilters).catch((e: unknown) => {
+        const { message, detailHint } = userFacingLoadError(e, "Gagal memuat jejak audit");
+        return {
+          ok: false as const,
+          status: 500 as const,
+          message,
+          detailHint,
+        };
+      }),
+      getAuditTrailFilterOptions(supabase).catch(() => null),
+      listAuditTrailActorOptions(supabase).catch(() => ({ data: [], error: null as Error | null })),
+      getAuditTrailAggregateStats(supabase, aggregateFilters).catch(() => ({
+        data: {
+          totalEntries: 0,
+          uniqueActors: 0,
+          uniqueActorsSampleCap: false,
+          latestCreatedAt: null as string | null,
+          distinctTargetTables: 0,
+          distinctTargetTablesSampleCap: false,
+        },
+        error: null as Error | null,
+      })),
+      getAuditLogSeverityCounts(supabase, aggregateFilters).catch(() => ({
+        data: { total: 0, critical: 0, warning: 0, info: 0 },
+        error: null as Error | null,
+      })),
+    ]);
 
   if (!trailResult.ok) {
     if (trailResult.status === 500) {
@@ -107,71 +122,167 @@ export default async function AuditTrailPage({
   const logs = trailResult.data;
   const totalCount = trailResult.count;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const from = totalCount === 0 ? 0 : offset + 1;
-  const to = Math.min(offset + PAGE_SIZE, totalCount);
 
   const actions = optionsResult?.ok ? optionsResult.actions : [];
   const targetTables = optionsResult?.ok ? optionsResult.targetTables : [];
+  const actors = actorsResult.data ?? [];
 
-  function buildUrl(overrides: Record<string, string | undefined>) {
-    const merged = { ...params, ...overrides };
-    const qs = new URLSearchParams();
-    if (merged.action) qs.set("action", merged.action);
-    if (merged.target_table) qs.set("target_table", merged.target_table);
-    if (merged.page && merged.page !== "1") qs.set("page", merged.page);
-    const str = qs.toString();
-    return `/superadmin/audit-trail${str ? `?${str}` : ""}`;
-  }
+  const metrics = aggregatesResult.data;
+  const severityCounts = severityResult.data;
 
-  const hasFilter = Boolean(params.action || params.target_table);
+  const hasFilter = Boolean(
+    params.action ||
+      params.target_table ||
+      params.user_id ||
+      params.date_from ||
+      params.date_to ||
+      params.q?.trim(),
+  );
+
+  const qBase: Record<string, string | undefined> = {
+    action: params.action,
+    target_table: params.target_table,
+    user_id: params.user_id,
+    date_from: params.date_from,
+    date_to: params.date_to,
+    q: params.q?.trim() || undefined,
+    severity: severity === "all" ? undefined : severity,
+  };
+
+  const exportHref = `/api/superadmin/audit-trail/export${buildUrlQuery(qBase)}`;
+
+  const latestFmt = formatAuditTrailTimestamp(metrics.latestCreatedAt);
 
   return (
     <div className="ds-page-operational">
-      <div className="ds-section-tint border-l-[3px] border-l-[var(--navy)]">
+      <header className="ds-section-tint border-l-[3px] border-l-[var(--navy)]">
         <p className="ds-section-label mb-1">Superadmin</p>
         <h1 className="ds-h1">Jejak audit</h1>
-        <p className="ds-lead max-w-2xl">
-          Rekaman aktivitas sistem: siapa melakukan apa, kapan, dan ke entitas mana. Detail payload
-          tetap tersedia per baris.
+        <p className="ds-lead max-w-3xl">
+          Rekaman aktivitas sistem: siapa melakukan apa, kapan, dan ke entitas mana. Detail payload tetap
+          tersedia per baris.
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="ds-summary-strip">
-            <History className="h-4 w-4 text-[var(--navy)]" aria-hidden />
-            <span>
-              <span className="font-mono font-semibold text-[var(--text-primary)]">
-                {totalCount}
-              </span>{" "}
-              entri di basis data
-            </span>
-          </span>
-          {hasFilter && (
-            <span className="ds-badge ds-badge-accent">
-              <Filter className="mr-1 inline h-3 w-3" aria-hidden />
-              Filter aktif
-            </span>
-          )}
-        </div>
+      </header>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatMetricCard
+          label="Total entri"
+          subLabel="Audit log tersedia"
+          value={metrics.totalEntries}
+          tone="danger"
+          icon="clipboardList"
+        />
+        <StatMetricCard
+          label="Aktor unik"
+          subLabel={
+            metrics.uniqueActorsSampleCap
+              ? "Perkiraan (sampel terbatas)"
+              : "User yang melakukan aksi"
+          }
+          value={metrics.uniqueActors}
+          tone="warning"
+          icon="user"
+        />
+        <KpiCard
+          label="Entri paling baru"
+          value={metrics.latestCreatedAt ? latestFmt.primary : "—"}
+          hint={metrics.latestCreatedAt ? (latestFmt.secondary || "—") : "Belum ada data"}
+          tone="success"
+          icon={Calendar}
+          className={
+            metrics.latestCreatedAt
+              ? ""
+              : "opacity-[0.92] [&_.ds-kpi-value]:text-[var(--text-muted)]"
+          }
+        />
+        <StatMetricCard
+          label="Entitas terdampak"
+          subLabel={
+            metrics.distinctTargetTablesSampleCap
+              ? "Tabel sasaran (perkiraan)"
+              : "Shipment / Box / Discrepancy"
+          }
+          value={metrics.distinctTargetTables}
+          tone="neutral"
+          icon="barChart2"
+        />
       </div>
 
-      <section className="flex flex-col gap-3" aria-label="Filter log">
-        <div className="ds-filter-bar">
-          <form
-            method="get"
-            action="/superadmin/audit-trail"
-            className="flex w-full flex-wrap items-end gap-4"
-          >
-            <div className="flex min-w-[10rem] flex-col gap-1.5">
-              <label
-                htmlFor="f-action"
-                className="text-xs font-semibold text-[var(--text-secondary)]"
+      <section className="ds-card ds-card-pad shadow-[var(--shadow-sm)]" aria-label="Filter log audit">
+        <form method="get" action="/superadmin/audit-trail" className="flex flex-col gap-4">
+          {severity !== "all" ? <input type="hidden" name="severity" value={severity} /> : null}
+          <input type="hidden" name="page" value="1" />
+          <input type="hidden" name="q" value={params.q ?? ""} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="f-from" className="text-xs font-semibold text-[var(--text-secondary)]">
+                Rentang tanggal — dari
+              </label>
+              <input
+                id="f-from"
+                type="date"
+                name="date_from"
+                defaultValue={params.date_from ?? ""}
+                className="ds-input w-full min-w-0 text-sm"
+              />
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="f-to" className="text-xs font-semibold text-[var(--text-secondary)]">
+                Rentang tanggal — sampai
+              </label>
+              <input
+                id="f-to"
+                type="date"
+                name="date_to"
+                defaultValue={params.date_to ?? ""}
+                className="ds-input w-full min-w-0 text-sm"
+              />
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="f-actor" className="text-xs font-semibold text-[var(--text-secondary)]">
+                Aktor
+              </label>
+              <select
+                id="f-actor"
+                name="user_id"
+                defaultValue={params.user_id ?? ""}
+                className="ds-select w-full min-w-0"
               >
-                Aksi
+                <option value="">Semua aktor</option>
+                {actors.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="f-table" className="text-xs font-semibold text-[var(--text-secondary)]">
+                Entitas (tabel)
+              </label>
+              <select
+                id="f-table"
+                name="target_table"
+                defaultValue={params.target_table ?? ""}
+                className="ds-select w-full min-w-0"
+              >
+                <option value="">Semua entitas</option>
+                {targetTables.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="f-action" className="text-xs font-semibold text-[var(--text-secondary)]">
+                Jenis aksi
               </label>
               <select
                 id="f-action"
                 name="action"
                 defaultValue={params.action ?? ""}
-                className="ds-select min-w-[12rem]"
+                className="ds-select w-full min-w-0"
               >
                 <option value="">Semua aksi</option>
                 {actions.map((a) => (
@@ -181,118 +292,70 @@ export default async function AuditTrailPage({
                 ))}
               </select>
             </div>
+          </div>
 
-            <div className="flex min-w-[10rem] flex-col gap-1.5">
-              <label
-                htmlFor="f-table"
-                className="text-xs font-semibold text-[var(--text-secondary)]"
-              >
-                Tabel sasaran
-              </label>
-              <select
-                id="f-table"
-                name="target_table"
-                defaultValue={params.target_table ?? ""}
-                className="ds-select min-w-[12rem]"
-              >
-                <option value="">Semua tabel</option>
-                {targetTables.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border-default)] pt-4">
             <button type="submit" className="ds-btn ds-btn-primary">
               Terapkan
             </button>
-
-            {(params.action || params.target_table) && (
+            {hasFilter || severity !== "all" ? (
               <a
                 href="/superadmin/audit-trail"
-                className="ds-link self-center sm:min-h-10 sm:self-end"
+                className="ds-btn ds-btn-secondary"
               >
                 Hapus filter
               </a>
-            )}
-          </form>
-        </div>
-
-        <div className="ds-subpanel flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-[var(--text-secondary)]">
-            <span className="font-medium text-[var(--text-primary)]">Ringkasan halaman</span>{" "}
-            — entri {from}–{to} dari {totalCount}
-            {hasFilter && (
-              <span className="text-[var(--text-muted)]"> (hasil terfilter)</span>
-            )}
-          </p>
-          <p className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-            <ClipboardList className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Urutan: terbaru dulu
-          </p>
-        </div>
+            ) : null}
+            <a
+              href={exportHref}
+              className="ds-btn ds-btn-secondary inline-flex items-center gap-2 no-underline"
+              title="Unduh JSON untuk filter saat ini (sama dengan tab dan kolom filter)."
+            >
+              <Download className="h-4 w-4 shrink-0" aria-hidden />
+              Export log
+            </a>
+            <p className="ml-auto hidden items-center gap-1.5 text-xs text-[var(--text-muted)] sm:flex">
+              <ClipboardList className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Urutan: terbaru dulu
+            </p>
+          </div>
+        </form>
       </section>
 
-      {logs.length === 0 ? (
-        <p className="ds-empty">Tidak ada entri audit{hasFilter ? " untuk filter ini" : ""}.</p>
-      ) : (
-        <div className="ds-table-wrap">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="ds-thead">
-                <th className="ds-tcell w-[1%] pl-4 whitespace-nowrap">Waktu</th>
-                <th className="ds-tcell min-w-[8rem]">Ringkasan</th>
-                <th className="ds-tcell w-[1%] whitespace-nowrap">Aksi</th>
-                <th className="ds-tcell w-[1%]">Tabel</th>
-                <th className="ds-tcell min-w-[6rem]">Aktor</th>
-                <th className="ds-tcell min-w-[10rem] pr-4">Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <AuditTrailLogRow
-                  key={log.id}
-                  log={log}
-                  formatActionLabel={formatActionLabel}
-                  formatTimestamp={formatTimestamp}
-                  userCellLabel={userCellLabel}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <AuditTrailExplorer
+        logs={logs}
+        totalCount={totalCount}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
+        severity={severity}
+        severityCounts={severityCounts}
+        hasActiveFilters={hasFilter || severity !== "all"}
+      />
 
-      {totalPages > 1 && (
+      {/* Pagination utama di dalam explorer; tautan cadangan bila JS off */}
+      {totalPages > 1 ? (
         <nav
-          className="flex flex-col gap-2 border-t border-[var(--border-default)] pt-4 sm:flex-row sm:items-center sm:justify-between"
-          aria-label="Pagination"
+          className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--border-default)] pt-2 text-sm text-[var(--text-muted)] sm:hidden"
+          aria-label="Pagination cadangan"
         >
-          <span className="text-sm text-[var(--text-secondary)]">
-            Halaman <span className="font-mono font-semibold">{currentPage}</span> dari{" "}
-            {totalPages}
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {currentPage > 1 && (
-              <a
-                href={buildUrl({ page: String(currentPage - 1) })}
-                className="ds-btn ds-btn-secondary py-1.5"
-              >
-                Sebelumnya
-              </a>
-            )}
-            {currentPage < totalPages && (
-              <a
-                href={buildUrl({ page: String(currentPage + 1) })}
-                className="ds-btn ds-btn-secondary py-1.5"
-              >
-                Berikutnya
-              </a>
-            )}
-          </div>
+          {currentPage > 1 ? (
+            <a
+              className="ds-link"
+              href={`/superadmin/audit-trail${buildUrlQuery({ ...qBase, page: String(currentPage - 1) })}`}
+            >
+              Sebelumnya
+            </a>
+          ) : null}
+          {currentPage < totalPages ? (
+            <a
+              className="ds-link"
+              href={`/superadmin/audit-trail${buildUrlQuery({ ...qBase, page: String(currentPage + 1) })}`}
+            >
+              Berikutnya
+            </a>
+          ) : null}
         </nav>
-      )}
+      ) : null}
     </div>
   );
 }

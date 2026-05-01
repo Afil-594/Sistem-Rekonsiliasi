@@ -8,6 +8,9 @@ export type Shipment = {
   created_at: string | null;
 };
 
+/** Enriched row for checker inbound list (`/checker/arrival`). */
+export type CheckerArrivalShipmentRow = Shipment & { box_count: number };
+
 import type { Box } from "@/types/box";
 import type { DiscrepancyLayer } from "@/types/discrepancy";
 import type { ErpPoItem } from "@/types/erp-po";

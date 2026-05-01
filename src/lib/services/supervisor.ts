@@ -5,6 +5,7 @@ import {
   countDiscrepancies,
   getDiscrepancyById,
   listDiscrepanciesByShipmentId,
+  listDiscrepanciesByShipmentIds,
   listDiscrepanciesForSupervisorMonitoring,
   updateDiscrepancyReview,
   type DiscrepancyMonitoringRow,
@@ -22,6 +23,7 @@ import {
   listRecentShipments,
   listRecentShipmentsByStatus,
   listShipmentsByStatus,
+  listShipmentsByStatuses,
   updateShipmentStatus,
 } from "@/lib/queries/shipments";
 import type { Box } from "@/types/box";
@@ -83,6 +85,7 @@ async function requireSupervisorProfile(
 export type SupervisorIssueQueueItem = {
   shipment: Shipment;
   vendorLabel: string;
+  discrepancies: Discrepancy[];
 };
 
 function supervisorVendorDisplayLabel(
@@ -165,9 +168,24 @@ export async function listIssueShipments(
 
   const labelMap = await buildVendorLabelMapForShipments(supabase, shipments);
 
+  const shipmentIds = shipments.map((s) => s.id);
+  const { data: allDiscrepancies, error: discError } =
+    await listDiscrepanciesByShipmentIds(supabase, shipmentIds);
+  if (discError) {
+    throw discError;
+  }
+
+  const discrepancyByShipment = new Map<string, Discrepancy[]>();
+  for (const d of allDiscrepancies ?? []) {
+    const list = discrepancyByShipment.get(d.shipment_id) ?? [];
+    list.push(d);
+    discrepancyByShipment.set(d.shipment_id, list);
+  }
+
   const data: SupervisorIssueQueueItem[] = shipments.map((shipment) => ({
     shipment,
     vendorLabel: labelMap[shipment.id] ?? "Tidak diketahui",
+    discrepancies: discrepancyByShipment.get(shipment.id) ?? [],
   }));
 
   return { ok: true, data };
@@ -203,11 +221,12 @@ export async function getShipmentForSupervisor(
   if (!shipment) {
     return { ok: false, status: 404, message: "Shipment tidak ditemukan." };
   }
-  if (shipment.status !== "issue") {
+  if (shipment.status !== "issue" && shipment.status !== "done") {
     return {
       ok: false,
       status: 409,
-      message: "Shipment ini tidak memiliki selisih yang menunggu review Supervisor.",
+      message:
+        "Shipment ini tidak dapat dibuka di halaman tinjauan (hanya shipment berstatus Issue atau Done).",
     };
   }
 
@@ -279,6 +298,19 @@ export async function reviewDiscrepancy(
   );
   if (reviewShipmentError) {
     throw reviewShipmentError;
+  }
+  if (!reviewShipment) {
+    return { ok: false, status: 404, message: "Shipment tidak ditemukan." };
+  }
+  if (reviewShipment.status !== "issue") {
+    return {
+      ok: false,
+      status: 409,
+      message:
+        reviewShipment.status === "done"
+          ? "Shipment sudah selesai; tinjauan tidak dapat diubah."
+          : "Shipment tidak berstatus Issue; tidak dapat mencatat tinjauan baru.",
+    };
   }
 
   const { data: updated, error: updateError } = await updateDiscrepancyReview(
@@ -377,6 +409,22 @@ export type SupervisorMonitoringFeedItem = {
   createdAt: string | null;
 };
 
+/** Satu baris pada History shipment (/supervisor/activities): per shipment, status issue|done. */
+export type SupervisorShipmentActivityRow = {
+  shipmentId: string;
+  shipmentCode: string;
+  shipmentStatus: "issue" | "done";
+  poReference: string | null;
+  vendorLabel: string;
+  /** Jumlah baris di `discrepancies` untuk shipment ini. */
+  totalDiscrepancies: number;
+  openDiscrepancies: number;
+  /** reviewed + resolved */
+  settledDiscrepancies: number;
+  /** Timestamp acuan aktivitas terbaru (resolved/reviewed/created selisih, atau dibuat shipment). */
+  lastActivityAt: string | null;
+};
+
 export type SupervisorMonitoringStats = {
   byLayer: { key: string; label: string; count: number }[];
   byType: { key: string; label: string; count: number }[];
@@ -385,6 +433,7 @@ export type SupervisorMonitoringStats = {
   topParts: { partNumber: string; count: number }[];
   recentIssueShipments: SupervisorIssueQueueItem[];
   discrepancyFeed: SupervisorMonitoringFeedItem[];
+  shipmentActivityFeed: SupervisorShipmentActivityRow[];
 };
 
 /** Rasio dari shipment berstatus `done` saja; rata-rata unit bermasalah per shipment done. */
@@ -428,6 +477,100 @@ function buildSupervisorDashboardKpis(
     shipmentDoneProblemRatePercent: (problemDoneCount / doneCount) * 100,
     avgProblemUnitsPerDoneShipment: sumProblemUnits / doneCount,
   };
+}
+
+/** Batas shipment `issue`|`done` yang diambil sebelum pengurutan aktivitas terbaru. */
+const SUPERVISOR_SHIPMENT_ACTIVITY_FETCH_LIMIT = 400;
+/** Jumlah baris ditampilkan di History shipment. */
+const SUPERVISOR_SHIPMENT_ACTIVITY_ROW_LIMIT = 50;
+
+function parseActivityTimestamp(iso: string | null): number | null {
+  if (!iso) {
+    return null;
+  }
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : t;
+}
+
+/** Waktu/isotime terpanjang untuk aktivitas terkait satu shipment dan selisihnya. */
+function lastShipmentActivityEvidence(
+  shipment: Shipment,
+  discrepancies: Discrepancy[],
+): { ts: number; iso: string | null } {
+  let bestTs = parseActivityTimestamp(shipment.created_at) ?? 0;
+  let bestIso = shipment.created_at;
+
+  for (const d of discrepancies) {
+    for (const iso of [d.resolved_at, d.reviewed_at, d.created_at] as const) {
+      const t = parseActivityTimestamp(iso);
+      if (t !== null && t >= bestTs) {
+        bestTs = t;
+        bestIso = iso;
+      }
+    }
+  }
+
+  return { ts: bestTs, iso: bestIso };
+}
+
+function buildSupervisorShipmentActivityFeed(
+  shipments: Shipment[],
+  discrepancies: Discrepancy[],
+  vendorLabelMap: Record<string, string>,
+  displayLimit: number,
+): SupervisorShipmentActivityRow[] {
+  const byShipment = new Map<string, Discrepancy[]>();
+  for (const d of discrepancies) {
+    const list = byShipment.get(d.shipment_id) ?? [];
+    list.push(d);
+    byShipment.set(d.shipment_id, list);
+  }
+
+  const rowsInterim = shipments
+    .map((shipment) => {
+      const status = shipment.status;
+      if (status !== "issue" && status !== "done") {
+        return null;
+      }
+
+      const discs = byShipment.get(shipment.id) ?? [];
+      let openDiscrepancies = 0;
+      for (const d of discs) {
+        if (d.status === "open") {
+          openDiscrepancies += 1;
+        }
+      }
+      const settledDiscrepancies = discs.length - openDiscrepancies;
+      const { iso: lastActivityAt } = lastShipmentActivityEvidence(
+        shipment,
+        discs,
+      );
+
+      const row: SupervisorShipmentActivityRow = {
+        shipmentId: shipment.id,
+        shipmentCode: shipment.shipment_code,
+        shipmentStatus: status,
+        poReference: shipment.po_reference,
+        vendorLabel: vendorLabelMap[shipment.id] ?? "Tidak diketahui",
+        totalDiscrepancies: discs.length,
+        openDiscrepancies,
+        settledDiscrepancies,
+        lastActivityAt,
+      };
+      const sortTs = parseActivityTimestamp(lastActivityAt) ?? 0;
+      return { row, sortTs };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+  return rowsInterim
+    .sort((a, b) => {
+      if (b.sortTs !== a.sortTs) {
+        return b.sortTs - a.sortTs;
+      }
+      return b.row.shipmentCode.localeCompare(a.row.shipmentCode);
+    })
+    .slice(0, displayLimit)
+    .map(({ row }) => row);
 }
 
 function inferPartNumberFromMonitoringRow(row: DiscrepancyMonitoringRow): string {
@@ -639,6 +782,7 @@ function buildSupervisorMonitoringStats(
     topParts,
     recentIssueShipments,
     discrepancyFeed,
+    shipmentActivityFeed: [],
   };
 }
 
@@ -688,16 +832,54 @@ export async function getDashboardStats(
     supabase,
     recentIssueShipmentRows,
   );
+  const recentIssueIds = recentIssueShipmentRows.map((s) => s.id);
+  const { data: recentIssueDiscrepancies, error: recentIssueDiscErr } =
+    await listDiscrepanciesByShipmentIds(supabase, recentIssueIds);
+  if (recentIssueDiscErr) {
+    throw recentIssueDiscErr;
+  }
+  const recentDiscByShipment = new Map<string, Discrepancy[]>();
+  for (const d of recentIssueDiscrepancies ?? []) {
+    const list = recentDiscByShipment.get(d.shipment_id) ?? [];
+    list.push(d);
+    recentDiscByShipment.set(d.shipment_id, list);
+  }
   const recentIssueQueue: SupervisorIssueQueueItem[] =
     recentIssueShipmentRows.map((shipment) => ({
       shipment,
       vendorLabel: issueVendorLabelMap[shipment.id] ?? "Tidak diketahui",
+      discrepancies: recentDiscByShipment.get(shipment.id) ?? [],
     }));
 
-  const monitoring = buildSupervisorMonitoringStats(
+  const monitoringCore = buildSupervisorMonitoringStats(
     monitoringRows.data,
     recentIssueQueue,
   );
+
+  const { data: reviewPipelineShipments, error: rpShipErr } =
+    await listShipmentsByStatuses(supabase, ["issue", "done"], SUPERVISOR_SHIPMENT_ACTIVITY_FETCH_LIMIT);
+  if (rpShipErr) {
+    throw rpShipErr;
+  }
+  const reviewPipelineIds = reviewPipelineShipments.map((s) => s.id);
+  const { data: reviewPipelineDiscrepancies, error: rpDiscErr } =
+    await listDiscrepanciesByShipmentIds(supabase, reviewPipelineIds);
+  if (rpDiscErr) {
+    throw rpDiscErr;
+  }
+  const shipmentActivityVendorMap =
+    await buildVendorLabelMapForShipments(supabase, reviewPipelineShipments);
+  const shipmentActivityFeed = buildSupervisorShipmentActivityFeed(
+    reviewPipelineShipments,
+    reviewPipelineDiscrepancies ?? [],
+    shipmentActivityVendorMap,
+    SUPERVISOR_SHIPMENT_ACTIVITY_ROW_LIMIT,
+  );
+
+  const monitoring: SupervisorMonitoringStats = {
+    ...monitoringCore,
+    shipmentActivityFeed,
+  };
 
   const totalShipments = shipmentsCount.count;
   const doneQuality = doneQualityResult.data;

@@ -1,7 +1,7 @@
 import { BarChart2, ListTree } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
-  DiscrepancyActivityTable,
+  SupervisorShipmentActivityTable,
   formatDiscrepancyWhen,
 } from "@/components/supervisor/DiscrepancyActivityFeed";
 import { getDashboardStats } from "@/lib/services/supervisor";
@@ -35,10 +35,10 @@ export default async function SupervisorDiscrepancyActivitiesPage() {
 
   const stats = result.data;
   const m = stats.monitoring;
-  const feed = m.discrepancyFeed;
+  const feed = m.shipmentActivityFeed;
   const latestLabel =
-    feed.length > 0 && feed[0].createdAt
-      ? formatDiscrepancyWhen(feed[0].createdAt)
+    feed.length > 0 && feed[0].lastActivityAt
+      ? formatDiscrepancyWhen(feed[0].lastActivityAt)
       : null;
 
   return (
@@ -46,10 +46,11 @@ export default async function SupervisorDiscrepancyActivitiesPage() {
       <div className="ds-section-tint border-l-[3px] border-l-[var(--navy)]">
         <header className="space-y-2">
           <p className="ds-section-label mb-1">Supervisor</p>
-          <h1 className="ds-h1">History shipmnet</h1>
+          <h1 className="ds-h1">History shipment</h1>
           <p className="ds-lead max-w-2xl">
-            Feed pemantauan: entri diurut menurut waktu tercatat, dengan referensi shipment, lapisan,
-            jenis, status, serta vendor dan part bila tersedia — disusun untuk pemindaian cepat.
+            Daftar shipment yang sedang dalam tinjauan supervisor (<span className="font-mono text-sm">issue</span>) atau
+            sudah selesai (<span className="font-mono text-sm">done</span>). Satu baris per shipment — urutan mengikuti
+            aktivitas terbaru pada catatan selisih atau pembuatan shipment.
           </p>
         </header>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
@@ -59,11 +60,11 @@ export default async function SupervisorDiscrepancyActivitiesPage() {
               <span className="font-mono font-semibold text-[var(--text-primary)]">
                 {feed.length}
               </span>{" "}
-              entri dalam feed ringkasan
+              shipment ditampilkan (maks. 50 urut aktivitas terbaru)
               {latestLabel ? (
                 <>
                   {" "}
-                  · entri paling baru: <span className="font-mono">{latestLabel}</span>
+                  · aktivitas terbaru: <span className="font-mono">{latestLabel}</span>
                 </>
               ) : null}
             </span>
@@ -82,10 +83,10 @@ export default async function SupervisorDiscrepancyActivitiesPage() {
 
       <SectionCard
         className="mt-6"
-        title="Daftar aktivitas"
-        lead="Urutan waktu terbaru di atas. Kode shipment tertaut ke review jika status masih issue."
+        title="Daftar shipment"
+        lead="Gunakan tombol Aksi: Review untuk shipment Issue, atau Lihat detail untuk arsip shipment Done (baca hasil tinjauan)."
       >
-        <DiscrepancyActivityTable rows={feed} />
+        <SupervisorShipmentActivityTable rows={feed} />
       </SectionCard>
     </div>
   );

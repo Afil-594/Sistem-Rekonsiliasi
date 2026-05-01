@@ -277,6 +277,11 @@ body {
     background: color-mix(in srgb, var(--success-muted) 35%, #ffffff);
   }
 
+  .ds-stat--warning {
+    border-color: color-mix(in srgb, var(--warning) 38%, var(--border-default));
+    background: color-mix(in srgb, var(--warning-muted) 52%, #ffffff);
+  }
+
   .ds-stat-label {
     @apply text-sm font-medium text-[var(--text-secondary)];
   }
@@ -291,6 +296,10 @@ body {
 
   .ds-stat-value--success {
     color: #047857;
+  }
+
+  .ds-stat-value--warning {
+    color: var(--warning);
   }
 
   .ds-stat-hint {

@@ -3,6 +3,7 @@ import { insertAuditLog } from "@/lib/queries/audit-logs";
 import {
   getBoxByCode,
   getBoxById,
+  listBoxCountsByShipmentIds,
   listBoxesByStatus,
   listBoxesByShipmentId,
   updateBoxStatus,
@@ -26,7 +27,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Box } from "@/types/box";
 import type { Discrepancy, DiscrepancyType } from "@/types/discrepancy";
 import type { Profile } from "@/types/profile";
-import type { Shipment } from "@/types/shipment";
+import type { CheckerArrivalShipmentRow, Shipment } from "@/types/shipment";
 
 const DISCREPANCY_TYPES: readonly DiscrepancyType[] = [
   "missing",
@@ -221,7 +222,7 @@ async function confirmShipmentStatus(
 export async function listCheckerShipments(
   supabase: SupabaseClient,
 ): Promise<
-  | { ok: true; data: Shipment[] }
+  | { ok: true; data: CheckerArrivalShipmentRow[] }
   | { ok: false; status: 401; message: string }
   | { ok: false; status: 403; message: string }
 > {
@@ -280,7 +281,21 @@ export async function listCheckerShipments(
     return bTime - aTime;
   });
 
-  return { ok: true, data: shipments };
+  const { data: boxCounts, error: boxCountsError } =
+    await listBoxCountsByShipmentIds(
+      supabase,
+      shipments.map((s) => s.id),
+    );
+  if (boxCountsError) {
+    throw boxCountsError;
+  }
+
+  const data: CheckerArrivalShipmentRow[] = shipments.map((s) => ({
+    ...s,
+    box_count: boxCounts.get(s.id) ?? 0,
+  }));
+
+  return { ok: true, data };
 }
 
 export async function getShipmentForChecker(

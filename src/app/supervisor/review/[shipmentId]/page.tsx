@@ -46,6 +46,7 @@ export default async function SupervisorShipmentDetailPage({
   }
 
   const { shipment, boxes, discrepancies, vendorLabel } = result.data;
+  const shipmentDone = shipment.status === "done";
   const boxCodeById = Object.fromEntries(
     boxes.map((box) => [box.id, box.box_code]),
   );
@@ -78,15 +79,26 @@ export default async function SupervisorShipmentDetailPage({
 
       <header className="min-w-0 border-b border-[var(--border-default)] pb-5">
         <p className="ds-section-label">Stasiun review · supervisor</p>
-        <h1 className="mt-0.5 ds-h1">Keputusan selisih &amp; retur</h1>
+        <h1 className="mt-0.5 ds-h1">
+          {shipmentDone ? "Arsip tinjauan shipment" : "Keputusan selisih & retur"}
+        </h1>
         <p className="ds-lead max-w-3xl">
-          Verifikasi setiap entri, tinjau bukti, lalu putuskan retur bila
-          memenuhi kebijakan. Ringkasan shipment dan daftar di bawah disusun
-          untuk alur keputusan yang jelas.
+          {shipmentDone ? (
+            <>
+              Shipment ini selesai. Berikut adalah ringkasan dan hasil tinjauan yang
+              tercatat — hanya dapat dibaca.
+            </>
+          ) : (
+            <>
+              Verifikasi setiap entri, tinjau bukti, lalu putuskan retur bila
+              memenuhi kebijakan. Ringkasan shipment dan daftar di bawah disusun
+              untuk alur keputusan yang jelas.
+            </>
+          )}
         </p>
       </header>
 
-      {discrepancies.length > 0 ? (
+      {!shipmentDone && discrepancies.length > 0 ? (
         <div
           className="flex min-w-0 items-start gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--section-bg)] px-3.5 py-3 text-sm sm:items-center sm:gap-3 sm:px-4"
           role="status"
@@ -139,6 +151,26 @@ export default async function SupervisorShipmentDetailPage({
         </div>
       ) : null}
 
+      {shipmentDone && discrepancies.length > 0 ? (
+        <div
+          className="flex min-w-0 items-start gap-2.5 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--section-bg)] px-3.5 py-3 text-sm sm:items-center sm:gap-3 sm:px-4"
+          role="status"
+        >
+          <CheckCircle2
+            className="mt-0.5 size-[1.1rem] shrink-0 text-[var(--navy)]"
+            aria-hidden
+          />
+          <p className="m-0 min-w-0 text-[var(--text-primary)]">
+            <span className="font-medium">Shipment selesai</span>
+            {" "}
+            <span className="text-[var(--text-secondary)]">
+              Anda melihat rekaman tinjauan; selisih yang sudah diproses tercantum di
+              kartu di bawah.
+            </span>
+          </p>
+        </div>
+      ) : null}
+
       <div className="min-w-0">
         <SupervisorReviewDetailSummary
           shipment={shipment}
@@ -154,7 +186,11 @@ export default async function SupervisorShipmentDetailPage({
           ) : (
             <ul
               className="ds-card-grid m-0 list-none p-0"
-              aria-label="Selisih untuk ditinjau"
+              aria-label={
+                shipmentDone
+                  ? "Selisih — arsip tinjauan"
+                  : "Selisih untuk ditinjau"
+              }
             >
               {displayDiscrepancies.map((discrepancy) => (
                 <li key={discrepancy.id} className="min-w-0">
@@ -168,6 +204,7 @@ export default async function SupervisorShipmentDetailPage({
                     evidenceUrl={
                       evidenceUrlByDiscrepancyId[discrepancy.id] ?? null
                     }
+                    reviewsLocked={shipmentDone}
                   />
                 </li>
               ))}

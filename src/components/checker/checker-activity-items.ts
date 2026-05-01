@@ -30,6 +30,8 @@ export type CheckerActivityItem = {
   createdAt: string | null;
   shipmentId: string | null;
   shipmentCode: string;
+  /** UUID box untuk deep-link QC di halaman shipment */
+  boxId: string | null;
   boxCode: string;
   partNumber: string | null;
   /** Tiba / Sesuai / Bermasalah */
@@ -54,6 +56,7 @@ export function buildCheckerActivityItems(
         action: log.action,
         createdAt: log.created_at,
         shipmentId: sid || null,
+        boxId: boxId || null,
         boxCode: str(p, "box_code") || "—",
         shipmentCode: str(p, "shipment_code") || "—",
         partNumber: boxId ? (partByBoxId[boxId] ?? null) : null,
@@ -70,6 +73,7 @@ export function buildCheckerActivityItems(
         action: log.action,
         createdAt: log.created_at,
         shipmentId: sid || null,
+        boxId: boxId || null,
         boxCode: str(p, "box_code") || "—",
         shipmentCode: str(p, "shipment_code") || "—",
         partNumber: boxId ? (partByBoxId[boxId] ?? null) : null,
@@ -86,6 +90,7 @@ export function buildCheckerActivityItems(
         action: log.action,
         createdAt: log.created_at,
         shipmentId: sid || null,
+        boxId: boxId || null,
         boxCode: str(p, "box_code") || "—",
         shipmentCode: str(p, "shipment_code") || "—",
         partNumber: boxId ? (partByBoxId[boxId] ?? null) : null,
@@ -101,6 +106,7 @@ export function buildCheckerActivityItems(
       action: log.action,
       createdAt: log.created_at,
       shipmentId: sid || null,
+      boxId: boxId || null,
       boxCode: str(p, "box_code") || "—",
       shipmentCode: str(p, "shipment_code") || "—",
       partNumber: boxId ? (partByBoxId[boxId] ?? null) : null,

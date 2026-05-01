@@ -4,20 +4,23 @@ import { LoadErrorState } from "@/components/ui/LoadErrorState";
 import { VendorShipmentsList } from "@/components/shipments/VendorShipmentsList";
 import { listVendorShipments } from "@/lib/services/shipment";
 import { userFacingErrorText, userFacingLoadError } from "@/lib/utils/load-failure";
+import type { VendorShipmentListFilterKey } from "@/lib/utils/vendor-shipment-visibility";
 import { VENDOR_SHIPMENT_STATUS_FILTERS } from "@/lib/utils/vendor-shipment-visibility";
 
 function normalizeShipmentListFilter(
   status: string | undefined,
-): { filterKey: string; queryToService: string } {
+): { filterKey: VendorShipmentListFilterKey; queryToService: string } {
   const t = status?.trim() ?? "";
   if (t === "" || t === "all") {
     return { filterKey: "all", queryToService: "all" };
   }
-  const valid = VENDOR_SHIPMENT_STATUS_FILTERS.some((f) => f.value === t);
-  if (!valid) {
-    return { filterKey: "all", queryToService: "all" };
+  if (VENDOR_SHIPMENT_STATUS_FILTERS.some((f) => f.value === t)) {
+    return { filterKey: t as VendorShipmentListFilterKey, queryToService: t };
   }
-  return { filterKey: t, queryToService: t };
+  if (t === "pending" || t === "in_transit" || t === "arrived") {
+    return { filterKey: "processing", queryToService: t };
+  }
+  return { filterKey: "all", queryToService: "all" };
 }
 
 export default async function VendorShipmentsPage({

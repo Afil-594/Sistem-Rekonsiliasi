@@ -6,23 +6,38 @@ import {
   Boxes,
   CheckCircle2,
   ClipboardList,
+  Hourglass,
   Package,
+  User,
+  Calendar,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-type Tone = "neutral" | "danger" | "success";
+type Tone = "neutral" | "danger" | "success" | "warning";
 
 const WRAP: Record<Tone, string> = {
   neutral: "ds-stat",
   danger: "ds-stat ds-stat--danger",
   success: "ds-stat ds-stat--success",
+  warning: "ds-stat ds-stat--warning",
 };
 
 const VALUE: Record<Tone, string> = {
   neutral: "ds-stat-value",
   danger: "ds-stat-value ds-stat-value--danger",
   success: "ds-stat-value ds-stat-value--success",
+  warning: "ds-stat-value ds-stat-value--warning",
 };
+
+function statIconWrapClass(tone: Tone): string {
+  if (tone === "warning") {
+    return [
+      "bg-amber-100/90 text-[var(--warning)]",
+      "dark:bg-amber-950/55 dark:text-amber-300",
+    ].join(" ");
+  }
+  return "bg-[var(--navy-muted)] text-[var(--navy)]";
+}
 
 function easeOutCubic(t: number): number {
   const x = 1 - t;
@@ -39,6 +54,9 @@ const STAT_METRIC_ICONS = {
   alertOctagon: AlertOctagon,
   checkCircle2: CheckCircle2,
   clipboardList: ClipboardList,
+      hourglass: Hourglass,
+      user: User,
+      calendar: Calendar,
 } as const;
 
 export type StatMetricIconName = keyof typeof STAT_METRIC_ICONS;
@@ -85,6 +103,8 @@ function useAnimatedStatValue(target: number) {
 
 type Props = {
   label: string;
+  /** Penjelasan satuan di bawah label (mis. “shipment” vs “baris”). */
+  subLabel?: string;
   value: number;
   tone?: Tone;
   /** Kunci ikon (resolved di sisi client, aman dipanggil dari Server Component). */
@@ -98,6 +118,7 @@ type Props = {
  */
 export function StatMetricCard({
   label,
+  subLabel,
   value,
   tone = "neutral",
   icon: iconName,
@@ -110,12 +131,22 @@ export function StatMetricCard({
     <div className={`${WRAP[tone]} ${className}`.trim()}>
       <div className="flex items-start justify-between gap-2">
         <dl className="min-w-0 flex-1">
-          <dt className="ds-stat-label">{label}</dt>
+          <dt className="ds-stat-label">
+            <span className="block">{label}</span>
+            {subLabel ? (
+              <span className="mt-0.5 block text-[0.65rem] font-normal normal-case tracking-normal text-[var(--text-muted)]">
+                {subLabel}
+              </span>
+            ) : null}
+          </dt>
           <dd className={`${VALUE[tone]} tabular-nums`}>{displayValue}</dd>
         </dl>
         {Icon ? (
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--navy-muted)] text-[var(--navy)]"
+            className={[
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)]",
+              statIconWrapClass(tone),
+            ].join(" ")}
             aria-hidden
           >
             <Icon className="h-4 w-4" strokeWidth={1.75} />

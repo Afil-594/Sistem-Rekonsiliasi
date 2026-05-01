@@ -12,15 +12,20 @@ const STATUS_ORDER: readonly NonNullable<Shipment["status"]>[] = [
   "done",
 ] as const;
 
+/** Tab filter values for `/vendor/shipments` (bukan langsung sama dengan enum DB). */
+export type VendorShipmentListFilterKey = "all" | "processing" | "issue" | "done";
+
+export const VENDOR_SHIPMENT_PROCESSING_DB_STATUSES: readonly NonNullable<
+  Shipment["status"]
+>[] = ["pending", "in_transit", "arrived"] as const;
+
 export const VENDOR_SHIPMENT_STATUS_FILTERS: {
-  value: "all" | NonNullable<Shipment["status"]>;
+  value: VendorShipmentListFilterKey;
   label: string;
 }[] = [
   { value: "all", label: "Semua" },
-  { value: "pending", label: "Draft" },
-  { value: "in_transit", label: "Dalam perjalanan" },
-  { value: "arrived", label: "Tiba di lokasi" },
-  { value: "issue", label: "Ditindak lanjuti" },
+  { value: "processing", label: "Sedang diproses" },
+  { value: "issue", label: "Perlu tindakan" },
   { value: "done", label: "Selesai" },
 ];
 

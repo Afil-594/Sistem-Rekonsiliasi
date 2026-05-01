@@ -14,7 +14,10 @@ import {
 } from "@/lib/queries/shipments";
 import { listBoxesByShipmentId } from "@/lib/queries/boxes";
 import { listDiscrepanciesByShipmentId } from "@/lib/queries/discrepancies";
-import { buildVendorProgressFields } from "@/lib/utils/vendor-shipment-visibility";
+import {
+  buildVendorProgressFields,
+  VENDOR_SHIPMENT_PROCESSING_DB_STATUSES,
+} from "@/lib/utils/vendor-shipment-visibility";
 import {
   insertShipmentBoxSnapshots,
   insertShipmentSnapshots,
@@ -243,9 +246,24 @@ export async function createShipmentDraft(
   throw new Error("Could not generate a unique shipment_code");
 }
 
-const VENDOR_SHIPMENT_LIST_STATUSES = new Set<
-  NonNullable<Shipment["status"]>
->(["pending", "in_transit", "arrived", "issue", "done"]);
+function resolveVendorShipmentListQuery(raw: string): {
+  status?: NonNullable<Shipment["status"]>;
+  statusIn?: readonly NonNullable<Shipment["status"]>[];
+} | undefined {
+  if (raw === "" || raw === "all") {
+    return undefined;
+  }
+  if (raw === "processing") {
+    return { statusIn: VENDOR_SHIPMENT_PROCESSING_DB_STATUSES };
+  }
+  if (raw === "issue" || raw === "done") {
+    return { status: raw };
+  }
+  if (raw === "pending" || raw === "in_transit" || raw === "arrived") {
+    return { statusIn: VENDOR_SHIPMENT_PROCESSING_DB_STATUSES };
+  }
+  return undefined;
+}
 
 export async function listVendorShipments(
   supabase: SupabaseClient,
@@ -261,17 +279,12 @@ export async function listVendorShipments(
   }
 
   const raw = typeof options?.status === "string" ? options.status.trim() : "";
-  const filterStatus: NonNullable<Shipment["status"]> | undefined =
-    raw === "" || raw === "all"
-      ? undefined
-      : VENDOR_SHIPMENT_LIST_STATUSES.has(raw as NonNullable<Shipment["status"]>)
-        ? (raw as NonNullable<Shipment["status"]>)
-        : undefined;
+  const listOpts = resolveVendorShipmentListQuery(raw);
 
   const { data, error } = await listShipmentsByVendorId(
     supabase,
     vendorProfileResult.profile.id,
-    filterStatus ? { status: filterStatus } : undefined,
+    listOpts,
   );
   if (error) {
     throw error;

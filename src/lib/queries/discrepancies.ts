@@ -191,6 +191,27 @@ export async function listDiscrepanciesByShipmentId(
   return { data: (data ?? []) as Discrepancy[], error: null };
 }
 
+export async function listDiscrepanciesByShipmentIds(
+  supabase: SupabaseClient,
+  shipmentIds: string[],
+): Promise<{ data: Discrepancy[]; error: Error | null }> {
+  if (shipmentIds.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("discrepancies")
+    .select(DISCREPANCY_COLUMNS)
+    .in("shipment_id", shipmentIds)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { data: [], error: new Error(error.message) };
+  }
+
+  return { data: (data ?? []) as Discrepancy[], error: null };
+}
+
 export async function getDiscrepancyById(
   supabase: SupabaseClient,
   discrepancyId: string,

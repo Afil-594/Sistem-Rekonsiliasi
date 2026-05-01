@@ -9,5 +9,5 @@ export type AuditLog = {
 };
 
 export type AuditLogWithUser = AuditLog & {
-  profiles: { full_name: string | null } | null;
+  profiles: { full_name: string | null; role: string | null } | null;
 };

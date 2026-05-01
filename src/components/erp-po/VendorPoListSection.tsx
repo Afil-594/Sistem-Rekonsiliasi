@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Calendar, ChevronRight, FileText, Inbox } from "lucide-react";
 import { LoadErrorState } from "@/components/ui/LoadErrorState";
 import { createClient } from "@/lib/supabase/server";
+import { listPoReferencesShippedByVendorId } from "@/lib/queries/shipments";
 import { listPurchaseOrdersByVendor } from "@/lib/services/erp-po";
 import { userFacingErrorText, userFacingLoadError } from "@/lib/utils/load-failure";
 import type { ErpPoHeader } from "@/types/erp-po";
@@ -40,8 +41,10 @@ function PoList({
           </div>
           <p className="ds-empty-title">Tidak ada PO yang cocok</p>
           <p className="ds-empty-hint max-w-sm mx-auto">
-            Ubah kata kunci nomor PO atau kosongkan pencarian untuk melihat semua PO
-            vendor Anda.
+            Ubah kata kunci nomor PO atau kosongkan pencarian untuk melihat daftar PO Anda
+            {listContext === "vendor"
+              ? " yang belum punya shipment"
+              : " untuk vendor ini"}.
           </p>
         </div>
       );
@@ -53,14 +56,21 @@ function PoList({
         </div>
         <p className="ds-empty-title">
           {listContext === "vendor"
-            ? "Belum ada PO untuk vendor Anda"
+            ? "Belum ada PO yang perlu diproses"
             : "Tidak ada PO untuk kode vendor ini"}
         </p>
-        <p className="ds-empty-hint max-w-sm mx-auto">
+        <p className="ds-empty-hint mx-auto mb-0 max-w-sm">
           {listContext === "vendor"
-            ? "Jika seharusnya sudah ada data, pastikan sinkronisasi ERP berjalan atau hubungi tim terkait."
+            ? "Kalau semua PO sudah Anda pakai untuk shipment (termasuk yang masih draft), kelola lewat Shipments Anda. Jika seharusnya masih ada PO baru, sinkronkan data ERP atau hubungi tim terkait."
             : "Periksa ejaan vendor code, atau pastikan data PO sudah tersinkron. Muat ulang jika kode diperbarui."}
         </p>
+        {listContext === "vendor" ? (
+          <p className="mt-5 mb-0 text-center text-xs text-[var(--text-secondary)] sm:text-sm">
+            <Link href="/vendor/shipments" className="font-semibold text-[var(--info)] underline underline-offset-2 hover:text-[var(--navy)]">
+              Ke halaman Shipments
+            </Link>
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -94,18 +104,21 @@ function PoList({
                       </span>
                     </p>
                   </div>
-                  <span className="mt-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-md border border-[var(--border-default)] bg-[var(--surface)] px-2 py-1 text-[0.65rem] font-semibold text-[var(--navy)] shadow-sm transition-colors group-hover:border-[color-mix(in_srgb,var(--navy)_18%,var(--border-default))] group-hover:bg-[var(--navy-muted)]/40 sm:text-xs">
-                    Detail
+                  <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[0.7rem] font-semibold tracking-tight text-[var(--info)] transition-colors group-hover:text-[var(--navy)] sm:text-[0.8rem]">
+                    Buat shipment
                     <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
                   </span>
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  <span className="ds-count-chip min-w-0 text-[0.7rem] sm:text-xs" title="Kode vendor (ERP)">
+                  <span
+                    className="inline-flex max-w-full min-w-0 items-center rounded-full bg-[var(--info-muted)] px-2.5 py-1 text-[0.65rem] font-semibold tracking-tight text-[var(--info)] sm:text-xs"
+                    title="Kode vendor (ERP)"
+                  >
                     Vendor {row.vendor_code}
                   </span>
                 </div>
                 <p className="mb-0 mt-2.5 text-[0.65rem] leading-snug text-[var(--text-muted)] sm:text-xs">
-                  Buka untuk baris item dan draft shipment (jika belum selesai).
+                  Buka nomor PO untuk melihat item dan menyusun shipment.
                 </p>
               </div>
             </div>
@@ -121,17 +134,43 @@ type Props = {
   /** When set, filters loaded rows by substring match on `po_number` (case-insensitive). */
   poQuery?: string;
   listContext: "vendor" | "lookup";
+  /**
+   * Untuk akun vendor: user id (`profiles.id`). PO yang sudah punya shipment untuk user ini disembunyikan.
+   */
+  vendorProfileUserId?: string | null;
 };
 
 export async function VendorPoListSection({
   vendorCode,
   poQuery = "",
   listContext,
+  vendorProfileUserId = null,
 }: Props) {
   const supabase = await createClient();
   let result: Awaited<ReturnType<typeof listPurchaseOrdersByVendor>>;
+  let shippedPoRefs: Set<string> = new Set();
+
   try {
-    result = await listPurchaseOrdersByVendor(supabase, vendorCode);
+    const shouldHideShipped =
+      listContext === "vendor" &&
+      typeof vendorProfileUserId === "string" &&
+      vendorProfileUserId.trim() !== "";
+
+    const [poResult, shippedResult] = await Promise.all([
+      listPurchaseOrdersByVendor(supabase, vendorCode),
+      shouldHideShipped
+        ? listPoReferencesShippedByVendorId(supabase, vendorProfileUserId!.trim())
+        : Promise.resolve({ data: [] as string[], error: null as Error | null }),
+    ]);
+
+    result = poResult;
+
+    if (shouldHideShipped) {
+      if (shippedResult.error) {
+        throw shippedResult.error;
+      }
+      shippedPoRefs = new Set(shippedResult.data);
+    }
   } catch (e) {
     const { message, detailHint } = userFacingLoadError(e, "Gagal memuat daftar PO");
     return <LoadErrorState message={message} detailHint={detailHint} />;
@@ -142,7 +181,16 @@ export async function VendorPoListSection({
   }
   const q = poQuery.trim();
   const poQueryActive = q.length > 0;
-  const allRows = result.data;
+
+  const hideShippedPos =
+    listContext === "vendor" &&
+    typeof vendorProfileUserId === "string" &&
+    vendorProfileUserId.trim() !== "";
+
+  const eligibleRows = hideShippedPos
+    ? result.data.filter((r) => !shippedPoRefs.has(r.po_number))
+    : result.data;
+  const allRows = eligibleRows;
   const rows = poQueryActive
     ? allRows.filter((r) => r.po_number.toLowerCase().includes(q.toLowerCase()))
     : allRows;

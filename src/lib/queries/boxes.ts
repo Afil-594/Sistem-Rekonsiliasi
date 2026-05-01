@@ -56,6 +56,35 @@ export async function listBoxesByShipmentId(
   return { data: (data ?? []) as Box[], error: null };
 }
 
+/** Box counts per shipment for list screens (one query + in-memory aggregate). */
+export async function listBoxCountsByShipmentIds(
+  supabase: SupabaseClient,
+  shipmentIds: string[],
+): Promise<{ data: Map<string, number>; error: Error | null }> {
+  if (shipmentIds.length === 0) {
+    return { data: new Map(), error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("boxes")
+    .select("shipment_id")
+    .in("shipment_id", shipmentIds);
+
+  if (error) {
+    return { data: new Map(), error: new Error(error.message) };
+  }
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const sid = (row as { shipment_id: string | null }).shipment_id;
+    if (typeof sid === "string" && sid.length > 0) {
+      counts.set(sid, (counts.get(sid) ?? 0) + 1);
+    }
+  }
+
+  return { data: counts, error: null };
+}
+
 export async function getBoxByCode(
   supabase: SupabaseClient,
   boxCode: string,

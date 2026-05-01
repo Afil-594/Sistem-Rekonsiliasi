@@ -83,8 +83,8 @@ export default async function VendorPurchaseOrdersPage({
           <p className="ds-section-label mb-0">Vendor</p>
           <h1 className="ds-h1">Daftar PO</h1>
           <p className="ds-lead max-w-3xl">
-            Daftar Purchase order untuk akun vendor Anda. Gunakan pencarian untuk menemukan
-            nomor PO.
+            PO yang masih bisa Anda pakai untuk membuat shipment pertama. Begitu sudah ada
+            shipment (termasuk draft), kelola lebih lanjut lewat Shipments Anda.
           </p>
         </header>
         <div className="flex flex-col gap-5">
@@ -96,16 +96,10 @@ export default async function VendorPurchaseOrdersPage({
           ) : (
             <>
               <section
-                className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)] shadow-[var(--shadow-sm)]"
+                className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)]"
                 aria-label="Konteks vendor dan pencarian PO"
               >
-                <div
-                  className="px-4 py-4 sm:px-5 sm:py-5"
-                  style={{
-                    background:
-                      "color-mix(in srgb, var(--navy) 9%, var(--section-bg))",
-                  }}
-                >
+                <div className="bg-[var(--info-muted)] px-4 py-4 sm:px-5 sm:py-5">
                   <div className="flex gap-3 sm:gap-4">
                     <div
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums tracking-tight text-white shadow-[inset_0_1px_0_color-mix(in_srgb,#ffffff_22%,transparent)] sm:h-12 sm:w-12 sm:text-base"
@@ -121,18 +115,18 @@ export default async function VendorPurchaseOrdersPage({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
                         <p className="m-0 text-base font-semibold leading-snug text-[var(--text-primary)] sm:text-lg">
                           {profile?.full_name?.trim() ||
                             user?.email ||
                             "Vendor"}
                         </p>
-                        <span className="inline-flex items-center rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--navy)_14%,var(--border-default))] bg-[var(--surface)] px-2 py-0.5 font-mono text-[0.7rem] font-semibold tracking-tight text-[var(--navy)] shadow-sm sm:text-xs">
-                          {vendorCodeFromProfile}
+                        <span className="inline-flex max-w-full min-w-0 items-center rounded-full bg-[color-mix(in_srgb,var(--surface)_92%,var(--info)_8%)] px-3 py-1 font-mono text-[0.7rem] font-semibold tracking-tight text-[var(--info)] sm:text-xs">
+                          Vendor {vendorCodeFromProfile}
                         </span>
                       </div>
-                      <p className="mt-1 m-0 text-xs leading-snug text-[var(--text-secondary)] sm:text-sm">
-                        Menampilkan PO untuk vendor Anda
+                      <p className="mt-1.5 m-0 text-xs leading-snug text-[var(--text-secondary)] sm:text-sm">
+                        Hanya PO yang belum punya shipment Anda di bawah ini
                       </p>
                     </div>
                   </div>
@@ -175,6 +169,7 @@ export default async function VendorPurchaseOrdersPage({
                 vendorCode={vendorCodeFromProfile}
                 poQuery={poQuery}
                 listContext="vendor"
+                vendorProfileUserId={user?.id ?? null}
               />
             </>
           )}

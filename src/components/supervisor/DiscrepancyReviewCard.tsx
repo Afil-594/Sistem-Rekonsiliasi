@@ -24,6 +24,8 @@ type Props = {
   evidenceUrl: string | null;
   /** e.g. `h-full` when used in `ds-card-grid` */
   className?: string;
+  /** Shipment berstatus done: hilangkan aksi “Tandai untuk retur” (baca saja). */
+  reviewsLocked?: boolean;
 };
 
 function statusPillClass(status: Discrepancy["status"]): string {
@@ -44,6 +46,7 @@ export function DiscrepancyReviewCard({
   boxCode,
   evidenceUrl,
   className = "",
+  reviewsLocked = false,
 }: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -51,6 +54,7 @@ export function DiscrepancyReviewCard({
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
 
   const isOpen = discrepancy.status === "open";
+  const canAct = isOpen && !reviewsLocked;
 
   async function runMarkReturn() {
     setSubmitting(true);
@@ -83,9 +87,9 @@ export function DiscrepancyReviewCard({
   return (
     <article
       className={[
-        "relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden transition-[box-shadow] duration-200",
-        "rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)]",
-        isOpen
+          "relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden transition-[box-shadow] duration-200",
+          "rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)]",
+          canAct
           ? "shadow-md ring-1 ring-[color-mix(in_srgb,var(--navy)_12%,var(--border-default))] before:pointer-events-none before:absolute before:bottom-0 before:left-0 before:top-0 before:z-[1] before:w-1 before:rounded-l-[var(--radius-lg)] before:bg-[var(--epson-yellow)] before:content-['']"
           : "bg-slate-50/90 opacity-[0.98] before:pointer-events-none before:absolute before:bottom-0 before:left-0 before:top-0 before:z-[1] before:w-1 before:rounded-l-[var(--radius-lg)] before:bg-slate-300/90 before:content-[''] dark:bg-slate-900/20 dark:before:bg-slate-600/90",
         className,
@@ -113,20 +117,30 @@ export function DiscrepancyReviewCard({
       <div
         className={[
           "relative z-[2] border-b border-[var(--border-default)] px-4 py-2.5 sm:px-5",
-          isOpen
+          canAct
             ? "bg-gradient-to-r from-amber-50/95 via-[var(--surface)] to-[var(--surface)] dark:from-amber-950/35"
             : "bg-slate-100/70 dark:bg-slate-800/40",
         ].join(" ")}
       >
         <div className="flex min-w-0 items-center justify-between gap-2">
           <p className="m-0 flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--text-primary)] sm:text-sm">
-            {isOpen ? (
+            {canAct ? (
               <>
                 <CircleDot
                   className="size-4 shrink-0 text-amber-700 dark:text-amber-400"
                   aria-hidden
                 />
                 <span>Menunggu keputusan</span>
+              </>
+            ) : reviewsLocked && isOpen ? (
+              <>
+                <CircleDot
+                  className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+                  aria-hidden
+                />
+                <span className="text-[var(--text-secondary)]">
+                  Menunggu keputusan (arsip · tidak dapat mengubah)
+                </span>
               </>
             ) : (
               <>
@@ -150,7 +164,7 @@ export function DiscrepancyReviewCard({
 
       <div
         className={`ds-card-pad min-h-0 min-w-0 flex-1 ${
-          isOpen ? "bg-[var(--surface)]" : "bg-[var(--surface)]/60"
+          canAct ? "bg-[var(--surface)]" : "bg-[var(--surface)]/60"
         }`}
       >
         <p className="m-0 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--navy)]">
@@ -266,12 +280,17 @@ export function DiscrepancyReviewCard({
 
       <div
         className={`mt-auto border-t border-[var(--border-default)] px-4 py-3.5 sm:px-5 ${
-          isOpen
+          canAct
             ? "bg-[color-mix(in_srgb,var(--navy)_2.4%,#ffffff_97.6%)] dark:bg-slate-900/30"
             : "bg-slate-100/80 dark:bg-slate-900/25"
         }`}
       >
-        {isOpen ? (
+        {reviewsLocked && isOpen ? (
+          <p className="m-0 text-sm leading-relaxed text-[var(--text-secondary)]">
+            Shipment telah selesai. Entri dengan status masih terbuka pada data tidak
+            dapat dikunci dari halaman ini—hubungi admin bila ini tidak disengaja.
+          </p>
+        ) : canAct ? (
           <div className="flex flex-col gap-3.5 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
             <p className="m-0 max-w-prose self-center text-xs text-[var(--text-secondary)] sm:text-sm sm:leading-relaxed">
               Pastikan bukti dan qty sudah sesuai sebelum memutuskan untuk retur.
