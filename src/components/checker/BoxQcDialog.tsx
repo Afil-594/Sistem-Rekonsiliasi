@@ -224,9 +224,6 @@ export function BoxQcDialog({ shipmentId, box, onClose, onSuccess }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--navy)]">
                   Pemeriksaan QC
                 </p>
-                <span className="rounded border border-[var(--border-default)] bg-[var(--surface)] px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                  Langkah 1
-                </span>
               </div>
               <h2
                 id="qc-dialog-title"
@@ -256,8 +253,8 @@ export function BoxQcDialog({ shipmentId, box, onClose, onSuccess }: Props) {
           {step === "decision" ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium text-[var(--text-primary)]">
-                Bandingkan fisik di lantai dengan kode, part, dan qty di bawah, lalu pilih
-                <strong> satu</strong> jalur.
+                Bandingkan barang fisik dengan kode, part, dan qty, lalu pilih
+                <strong> satu</strong> opsi dibawah.
               </p>
               {errorMessage ? (
                 <p className="ds-alert ds-alert-error font-medium" role="alert">
@@ -315,9 +312,6 @@ export function BoxQcDialog({ shipmentId, box, onClose, onSuccess }: Props) {
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="m-0 text-sm font-medium text-[var(--text-primary)]">
-                  <span className="rounded border border-[var(--navy)]/20 bg-[var(--navy)]/5 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--navy)]">
-                    Langkah 2
-                  </span>{" "}
                   Catat kondisi bermasalah
                 </p>
                 <span className="text-xs text-[var(--text-muted)]">Deskripsi wajib</span>
@@ -328,7 +322,7 @@ export function BoxQcDialog({ shipmentId, box, onClose, onSuccess }: Props) {
                 </p>
               ) : null}
               <p className="text-sm text-[var(--text-secondary)]">
-                Isi sejelas mungkin; bukti foto membantu eskalasi supervisor.
+                Deskripsi yang jelas akan membantu supervisor untuk memahami permasalahan.
               </p>
               <div
                 className="ds-subpanel"

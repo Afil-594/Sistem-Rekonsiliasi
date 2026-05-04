@@ -19,6 +19,8 @@ const PRIORITY_KEYS: readonly string[] = [
   "discrepancy_status_to",
   "supervisor_action",
   "shipment_done",
+  "po_number",
+  "item_count",
   "created_user_id",
   "email",
   "full_name",
@@ -128,6 +130,17 @@ export function buildAuditLogSummary(
       const em = str(p.email);
       if (name && role) return `Created user ${name} as ${role}${em ? ` (${em})` : ""}`;
       return "User created";
+    }
+    case "superadmin_create_po": {
+      const po = str(p.po_number);
+      const vc = str(p.vendor_code);
+      const n = p.item_count;
+      const lines =
+        typeof n === "number" ? `${n} line${n === 1 ? "" : "s"}` : "";
+      if (po && vc && lines) return `Created PO ${po} for vendor ${vc} (${lines})`;
+      if (po && vc) return `Created PO ${po} for vendor ${vc}`;
+      if (po) return `Created PO ${po}`;
+      return "PO created (superadmin)";
     }
     default: {
       if (p.shipment_code) return str(p.shipment_code);

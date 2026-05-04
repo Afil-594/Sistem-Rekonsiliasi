@@ -2,6 +2,12 @@ import { AppRoleShell, type ShellNavItem } from "@/components/shell/AppRoleShell
 
 const navItems: ShellNavItem[] = [
   { href: "/superadmin/users", label: "Pengguna", icon: "users", match: "prefix" },
+  {
+    href: "/superadmin/purchase-orders",
+    label: "Data PO",
+    icon: "clipboardList",
+    match: "prefix",
+  },
   { href: "/superadmin/audit-trail", label: "Jejak audit", icon: "scrollText", match: "prefix" },
 ];
 

@@ -53,6 +53,30 @@ export async function listProfiles(
   return { data: (data as Profile[]) ?? [], error: null };
 }
 
+/** True if at least one vendor profile uses this vendor code (trim-exact match). */
+export async function vendorProfileExistsForCode(
+  supabase: SupabaseClient,
+  vendorCode: string,
+): Promise<{ data: boolean; error: Error | null }> {
+  const code = vendorCode.trim();
+  if (!code) {
+    return { data: false, error: null };
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("role", "vendor")
+    .eq("vendor_code", code)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { data: false, error: new Error(error.message) };
+  }
+  return { data: !!data, error: null };
+}
+
 export async function insertProfile(
   supabase: SupabaseClient,
   input: {
