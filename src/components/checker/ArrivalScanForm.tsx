@@ -26,7 +26,7 @@ declare global {
 
 const SCANNER_DIV_ID = "arrival-scanner";
 const SAME_CODE_DEBOUNCE_MS = 3000;
-const SCANNER_SCRIPT_SRC = "/vendor/html5-qrcode.min.js";
+const SCANNER_SCRIPT_SRC = "/libs/html5-qrcode.min.js";
 
 let scannerLoadPromise: Promise<Html5QrcodeCtor> | null = null;
 
