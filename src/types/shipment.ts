@@ -11,6 +11,9 @@ export type Shipment = {
 /** Enriched row for checker inbound list (`/checker/arrival`). */
 export type CheckerArrivalShipmentRow = Shipment & { box_count: number };
 
+/** Enriched row for vendor shipment list (`/vendor/shipments`). */
+export type VendorShipmentListRow = Shipment & { box_count: number };
+
 import type { Box } from "@/types/box";
 import type { DiscrepancyLayer } from "@/types/discrepancy";
 import type { ErpPoItem } from "@/types/erp-po";

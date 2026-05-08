@@ -4,16 +4,20 @@ import {
   AlertTriangle,
   Calendar,
   CheckCircle2,
+  FileText,
   Inbox,
   MapPin,
   Package,
   Truck,
+  ArrowRight,
+  ClipboardList,
 } from "lucide-react";
-import type { Shipment } from "@/types/shipment";
+import type { VendorShipmentListRow } from "@/types/shipment";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { FilterPillLink } from "@/components/ui/FilterPillLink";
 import { PipelineTrack } from "@/components/ui/PipelineTrack";
 import {
+  getVendorShipmentNextStepText,
   getVendorShipmentStatusLabel,
   vendorShipmentStatusProgressIndex,
   VENDOR_SHIPMENT_STATUS_FILTERS,
@@ -44,56 +48,69 @@ function formatWhenShort(iso: string | null) {
   });
 }
 
+function formatBoxLabel(count: number) {
+  return `${count.toLocaleString("id-ID")} Box`;
+}
+
 function statusIcon(
-  status: Shipment["status"],
-): { Icon: LucideIcon; boxClass: string } {
+  status: VendorShipmentListRow["status"],
+): { Icon: LucideIcon; circleClass: string } {
   if (status === "pending") {
     return {
       Icon: Package,
-      boxClass: "bg-[var(--warning-muted)] text-[var(--warning)]",
+      circleClass: "bg-[var(--warning-muted)] text-[var(--warning)]",
     };
   }
   if (status === "in_transit") {
     return {
       Icon: Truck,
-      boxClass: "bg-[var(--info-muted)] text-[var(--info)]",
+      circleClass: "bg-[color-mix(in_srgb,var(--info)_15%,#ffffff)] text-[var(--info)]",
     };
   }
   if (status === "arrived") {
     return {
       Icon: MapPin,
-      boxClass: "bg-[var(--navy-muted)] text-[var(--navy)]",
+      circleClass: "bg-[var(--navy-muted)] text-[var(--navy)]",
     };
   }
   if (status === "issue") {
     return {
       Icon: AlertTriangle,
-      boxClass: "bg-[var(--danger-muted)] text-[var(--danger)]",
+      circleClass: "bg-[var(--danger-muted)] text-[var(--danger)]",
     };
   }
   if (status === "done") {
     return {
       Icon: CheckCircle2,
-      boxClass: "bg-[var(--success-muted)] text-[#0a5c47]",
+      circleClass: "bg-[color-mix(in_srgb,var(--success)_18%,#ffffff)] text-[#0a5c47]",
     };
   }
   return {
     Icon: Package,
-    boxClass: "bg-[var(--section-bg)] text-[var(--text-muted)]",
+    circleClass: "bg-[var(--section-bg)] text-[var(--text-muted)]",
   };
 }
 
-function statusToneModifier(status: Shipment["status"]): string {
-  if (status === "pending") return "ds-entity-tile--status-pending";
-  if (status === "in_transit") return "ds-entity-tile--status-in_transit";
-  if (status === "arrived") return "ds-entity-tile--status-arrived";
-  if (status === "issue") return "ds-entity-tile--status-issue";
-  if (status === "done") return "ds-entity-tile--status-done";
-  return "";
+function leftAccentClass(status: VendorShipmentListRow["status"]): string {
+  if (status === "in_transit") return "border-l-[var(--info)]";
+  if (status === "arrived") return "border-l-amber-500";
+  if (status === "pending") return "border-l-amber-600";
+  if (status === "issue") return "border-l-[var(--danger)]";
+  if (status === "done") return "border-l-[var(--success)]";
+  return "border-l-slate-300";
 }
 
+const solidDetailBtn =
+  "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color-mix(in_srgb,var(--navy)_88%,#000000)]";
+
+const outlinePoBtn =
+  "inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--info)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--info)] shadow-sm transition hover:bg-[color-mix(in_srgb,var(--info)_8%,#ffffff)]";
+
+const metricIconWrap =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--info)_12%,#ffffff)] text-[var(--info)]";
+
 type Props = {
-  rows: Shipment[];
+  rows: VendorShipmentListRow[];
   currentFilter: string;
 };
 
@@ -104,6 +121,9 @@ export function VendorShipmentsList({ rows, currentFilter }: Props) {
     }
     return `/vendor/shipments?status=${encodeURIComponent(value)}`;
   };
+
+  const detailHref = (id: string) =>
+    `/vendor/shipments/${encodeURIComponent(id)}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,35 +155,35 @@ export function VendorShipmentsList({ rows, currentFilter }: Props) {
         </div>
       ) : (
         <ul
-          className="ds-card-grid m-0 list-none p-0"
+          className="m-0 flex list-none flex-col gap-4 p-0"
           aria-label="Daftar shipment Anda"
         >
           {rows.map((row) => {
             const s = getVendorShipmentStatusLabel(row.status);
             const activeIdx = vendorShipmentStatusProgressIndex(row.status);
-            const tone = statusToneModifier(row.status);
-            const { Icon, boxClass } = statusIcon(row.status);
-            const stageLabel = PIPELINE_STEPS[activeIdx]?.label ?? "—";
+            const accent = leftAccentClass(row.status);
+            const { Icon, circleClass } = statusIcon(row.status);
+            const nextStep = getVendorShipmentNextStepText(row.status);
+            const poHref = row.po_reference
+              ? `/vendor/purchase-orders/${encodeURIComponent(row.po_reference)}`
+              : null;
+
             return (
               <li key={row.id} className="min-w-0">
-                <Link
-                  className={`ds-entity-tile group ds-entity-tile--status pl-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--page-bg)] ${tone}`.trim()}
-                  href={`/vendor/shipments/${encodeURIComponent(row.id)}`}
+                <article
+                  className={`overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)] shadow-[var(--shadow-sm)] border-l-4 ${accent}`}
                 >
-                  <div className="flex gap-3">
-                    <div
-                      className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${boxClass}`.trim()}
-                      aria-hidden
-                    >
-                      <Icon className="h-4 w-4" strokeWidth={1.75} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-1.5 gap-y-1">
-                            <span className="font-mono text-[0.8125rem] font-semibold leading-tight text-[var(--text-primary)] sm:text-sm">
-                              {row.shipment_code}
-                            </span>
+                  <div className="flex flex-col lg:flex-row">
+                    <div className="min-w-0 flex-1 p-4 sm:p-5">
+                      <div className="flex gap-3 sm:gap-4">
+                        <div
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${circleClass}`.trim()}
+                          aria-hidden
+                        >
+                          <Icon className="h-5 w-5" strokeWidth={2} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
                             {row.status ? (
                               <StatusBadge
                                 status={row.status}
@@ -172,54 +192,73 @@ export function VendorShipmentsList({ rows, currentFilter }: Props) {
                               />
                             ) : null}
                           </div>
-                          <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-[var(--text-primary)]/90 sm:text-sm">
-                            {s.headline}
-                          </p>
-                          <p className="mt-0.5 line-clamp-1 text-[0.7rem] leading-relaxed text-[var(--text-secondary)] sm:line-clamp-2 sm:text-xs">
-                            {s.description}
+                          <Link
+                            href={detailHref(row.id)}
+                            className="mt-2 block font-mono text-lg font-bold leading-tight tracking-tight text-[var(--navy)] underline-offset-2 hover:bg-[color-mix(in_srgb,var(--navy)_4%,#ffffff)] hover:underline sm:text-xl"
+                          >
+                            {row.shipment_code}
+                          </Link>
+                          <p className="mt-1.5 text-xs leading-snug text-[var(--text-muted)] sm:text-sm">
+                            PO:{" "}
+                            <span className="font-medium text-[var(--text-secondary)]">
+                              {row.po_reference ?? "—"}
+                            </span>
+                            <span className="mx-1.5" aria-hidden>
+                              ·
+                            </span>
+                            Dibuat {formatWhenShort(row.created_at)}
                           </p>
                         </div>
-                        <span className="mt-0.5 inline-flex shrink-0 items-center text-[0.65rem] font-semibold text-[var(--navy)] underline-offset-2 transition-colors group-hover:underline sm:text-xs">
-                          {"Lihat detail PO >"}
-                        </span>
                       </div>
-                      <div className="ds-summary-strip mt-2.5 flex-wrap items-center gap-x-2 gap-y-1.5 py-2 pl-0.5 pr-2 text-[0.7rem] sm:text-xs">
-                        {row.po_reference ? (
-                          <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-[var(--text-secondary)]">
-                            <span className="shrink-0 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                              PO
-                            </span>
-                            <span className="ds-inline-code max-w-[10rem] truncate text-[0.7rem] sm:max-w-none sm:text-xs">
-                              {row.po_reference}
-                            </span>
-                          </span>
-                        ) : null}
-                        {row.po_reference ? (
-                          <span
-                            className="hidden h-3 w-px bg-[var(--border-default)] sm:inline"
-                            aria-hidden
-                          />
-                        ) : null}
-                        <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
-                          <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
-                          <span>
-                            <span className="text-[var(--text-muted)]">Dibuat </span>
-                            {formatWhenShort(row.created_at)}
-                          </span>
-                        </span>
-                        <span
-                          className="inline-flex w-full min-w-0 items-center gap-1.5 sm:w-auto sm:ml-auto"
-                          title="Posisi saat ini pada alur shipment"
-                        >
-                          <span className="shrink-0 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                            Tahap
-                          </span>
-                          <span className="ds-count-chip min-w-0 max-w-full truncate text-[0.65rem] sm:text-xs">
-                            {stageLabel}
-                          </span>
-                        </span>
+
+                      <div
+                        className="my-4 h-px w-full bg-[var(--border-default)]"
+                        aria-hidden
+                      />
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5">
+                        <div className="flex gap-3">
+                          <div className={metricIconWrap} aria-hidden>
+                            <FileText className="h-4 w-4" strokeWidth={2} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-[var(--text-muted)]">
+                              Nomor PO
+                            </p>
+                            <p className="mt-0.5 truncate text-sm font-semibold text-[var(--text-primary)]">
+                              {row.po_reference ?? "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className={metricIconWrap} aria-hidden>
+                            <Calendar className="h-4 w-4" strokeWidth={2} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-[var(--text-muted)]">
+                              Dibuat
+                            </p>
+                            <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">
+                              {formatWhenShort(row.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className={metricIconWrap} aria-hidden>
+                            <Package className="h-4 w-4" strokeWidth={2} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-[var(--text-muted)]">
+                              Total Box
+                            </p>
+                            <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">
+                              {formatBoxLabel(row.box_count)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-2.5 border-t border-[var(--border-default)] pt-2.5">
+
+                      <div className="mt-4 border-t border-[var(--border-default)] pt-3 sm:mt-5 sm:pt-4">
                         <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--text-muted)] sm:text-xs">
                           Alur singkat
                         </p>
@@ -231,8 +270,29 @@ export function VendorShipmentsList({ rows, currentFilter }: Props) {
                         />
                       </div>
                     </div>
+
+                    <aside className="flex flex-col justify-center border-t border-[var(--border-default)] bg-[color-mix(in_srgb,var(--navy)_2.5%,#ffffff)] p-4 sm:p-5 lg:w-[min(100%,19rem)] lg:border-l lg:border-t-0">
+                      <p className="m-0 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                        Langkah selanjutnya
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                        {nextStep}
+                      </p>
+                      <div className="mt-4 flex flex-col gap-2.5">
+                        <Link href={detailHref(row.id)} className={solidDetailBtn}>
+                          <ArrowRight className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                          Buka detail shipment
+                        </Link>
+                        {poHref ? (
+                          <Link href={poHref} className={outlinePoBtn}>
+                            <ClipboardList className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                            Lihat PO
+                          </Link>
+                        ) : null}
+                      </div>
+                    </aside>
                   </div>
-                </Link>
+                </article>
               </li>
             );
           })}

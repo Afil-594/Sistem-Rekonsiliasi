@@ -12,7 +12,7 @@ import {
   listShipmentsByVendorId,
   updateShipmentStatus,
 } from "@/lib/queries/shipments";
-import { listBoxesByShipmentId } from "@/lib/queries/boxes";
+import { listBoxCountsByShipmentIds, listBoxesByShipmentId } from "@/lib/queries/boxes";
 import { listDiscrepanciesByShipmentId } from "@/lib/queries/discrepancies";
 import {
   buildVendorProgressFields,
@@ -24,7 +24,7 @@ import {
 } from "@/lib/queries/shipment-snapshots";
 import { generateShipmentCode } from "@/lib/utils/shipment-code";
 import type { Box } from "@/types/box";
-import type { Shipment, ShipmentDetail } from "@/types/shipment";
+import type { Shipment, ShipmentDetail, VendorShipmentListRow } from "@/types/shipment";
 
 function normalizePoReference(value: string | undefined | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -269,7 +269,7 @@ export async function listVendorShipments(
   supabase: SupabaseClient,
   options?: { status?: string | null },
 ): Promise<
-  | { ok: true; data: Shipment[] }
+  | { ok: true; data: VendorShipmentListRow[] }
   | { ok: false; status: 401; message: string }
   | { ok: false; status: 403; message: string }
 > {
@@ -290,7 +290,22 @@ export async function listVendorShipments(
     throw error;
   }
 
-  return { ok: true, data };
+  const rows = data ?? [];
+  const { data: boxCounts, error: boxCountsError } =
+    await listBoxCountsByShipmentIds(
+      supabase,
+      rows.map((s) => s.id),
+    );
+  if (boxCountsError) {
+    throw boxCountsError;
+  }
+
+  const dataWithCounts: VendorShipmentListRow[] = rows.map((s) => ({
+    ...s,
+    box_count: boxCounts.get(s.id) ?? 0,
+  }));
+
+  return { ok: true, data: dataWithCounts };
 }
 
 export async function getVendorShipmentForPo(

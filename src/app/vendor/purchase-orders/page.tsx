@@ -1,4 +1,5 @@
 import { Inbox, Search } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { VendorCodeForm } from "@/components/erp-po/VendorCodeForm";
 import { VendorPoListSection } from "@/components/erp-po/VendorPoListSection";
@@ -48,6 +49,20 @@ function vendorDisplayInitials(
   return c ? c.slice(0, 1).toUpperCase() + "·" : "?";
 }
 
+function VendorPoLookupBanner({ vendorCode }: { vendorCode: string }) {
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-amber-200/80 bg-[color-mix(in_srgb,#fef3c7_55%,#ffffff)] px-4 py-3.5 sm:px-5 sm:py-4">
+      <p className="m-0 text-sm leading-relaxed text-[var(--text-secondary)]">
+        Menampilkan semua PO ERP untuk kode vendor{" "}
+        <span className="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-xs font-semibold text-[var(--navy)]">
+          {vendorCode}
+        </span>
+        . Login sebagai vendor untuk hanya melihat PO yang masih bisa dibuat shipment pertama.
+      </p>
+    </div>
+  );
+}
+
 export default async function VendorPurchaseOrdersPage({
   searchParams,
 }: {
@@ -80,11 +95,12 @@ export default async function VendorPurchaseOrdersPage({
     return (
       <div className="ds-page-operational">
         <header className="border-b border-[var(--border-default)] pb-6">
-          <p className="ds-section-label mb-0">Vendor</p>
-          <h1 className="ds-h1">Daftar PO</h1>
-          <p className="ds-lead max-w-3xl">
-            PO yang masih bisa Anda pakai untuk membuat shipment pertama. Begitu sudah ada
-            shipment (termasuk draft), kelola lebih lanjut lewat Shipments Anda.
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="ds-section-label mb-0">Vendor</p>
+          </div>
+          <h1 className="ds-h1 text-[var(--navy)]">Daftar PO</h1>
+          <p className="ds-lead mt-1 max-w-6xl">
+            PO yang perlu dikonfirmasi untuk membuat shipment. Setelah anda mengkonfirmasi shipment (termasuk draft), kelola lebih lanjut pada halaman Shipment.
           </p>
         </header>
         <div className="flex flex-col gap-5">
@@ -96,7 +112,7 @@ export default async function VendorPurchaseOrdersPage({
           ) : (
             <>
               <section
-                className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--surface)]"
+                className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)] shadow-[var(--shadow-sm)]"
                 aria-label="Konteks vendor dan pencarian PO"
               >
                 <div className="bg-[var(--info-muted)] px-4 py-4 sm:px-5 sm:py-5">
@@ -182,8 +198,8 @@ export default async function VendorPurchaseOrdersPage({
     <div className="ds-page-operational">
       <header className="border-b border-[var(--border-default)] pb-6">
         <p className="ds-section-label mb-0">Vendor</p>
-        <h1 className="ds-h1">Daftar PO</h1>
-        <p className="ds-lead max-w-3xl">
+        <h1 className="ds-h1 text-[var(--navy)]">Daftar PO</h1>
+        <p className="ds-lead mt-1 max-w-3xl">
           Masukkan vendor code untuk memuat purchase order yang tersedia.
         </p>
       </header>
@@ -204,15 +220,10 @@ export default async function VendorPurchaseOrdersPage({
             </p>
           </div>
         ) : (
-          <section className="flex flex-col gap-2" aria-label="Konteks daftar">
-            <p className="m-0 text-xs font-medium text-[var(--text-muted)] sm:text-sm">
-              Menampilkan PO untuk{" "}
-              <span className="ds-count-chip align-middle text-[0.7rem] sm:text-xs">
-                {vendorCodeParam}
-              </span>
-            </p>
+          <>
+            <VendorPoLookupBanner vendorCode={vendorCodeParam} />
             <VendorPoListSection vendorCode={vendorCodeParam} listContext="lookup" />
-          </section>
+          </>
         )}
       </div>
     </div>

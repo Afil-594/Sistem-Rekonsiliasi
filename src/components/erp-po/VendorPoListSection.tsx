@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { Calendar, ChevronRight, FileText, Inbox } from "lucide-react";
+import {
+  Calendar,
+  FileText,
+  Inbox,
+  Package,
+  Tag,
+} from "lucide-react";
 import { LoadErrorState } from "@/components/ui/LoadErrorState";
 import { createClient } from "@/lib/supabase/server";
 import { listPoReferencesShippedByVendorId } from "@/lib/queries/shipments";
@@ -21,6 +27,29 @@ function formatWhenShort(iso: string) {
   });
 }
 
+function poDetailPath(poNumber: string) {
+  return `/vendor/purchase-orders/${encodeURIComponent(poNumber)}`;
+}
+
+const shipmentCtaBtn =
+  "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--navy)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color-mix(in_srgb,var(--navy)_88%,#000000)]";
+
+const metricIconWrap =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--info)_12%,#ffffff)] text-[var(--info)]";
+
+function nextStepBlurbs(listContext: "vendor" | "lookup"): { title: string; body: string } {
+  if (listContext === "vendor") {
+    return {
+      title: "Langkah selanjutnya",
+      body: "",
+    };
+  }
+  return {
+    title: "Langkah selanjutnya",
+    body: "Buka PO untuk melihat line item dan data referensi dari ERP.",
+  };
+}
+
 function PoList({
   rows,
   listContext,
@@ -32,6 +61,8 @@ function PoList({
   hadRowsBeforeFilter: boolean;
   poQueryActive: boolean;
 }) {
+  const blurbs = nextStepBlurbs(listContext);
+
   if (rows.length === 0) {
     if (poQueryActive && hadRowsBeforeFilter) {
       return (
@@ -61,7 +92,7 @@ function PoList({
         </p>
         <p className="ds-empty-hint mx-auto mb-0 max-w-sm">
           {listContext === "vendor"
-            ? "Kalau semua PO sudah Anda pakai untuk shipment (termasuk yang masih draft), kelola lewat Shipments Anda. Jika seharusnya masih ada PO baru, sinkronkan data ERP atau hubungi tim terkait."
+            ? "Kelola PO yang sudah diproses melalui halaman Shipment. Jika seharusnya ada PO yang belum diproses, hubungi tim terkait untuk sinkronisasi data."
             : "Periksa ejaan vendor code, atau pastikan data PO sudah tersinkron. Muat ulang jika kode diperbarui."}
         </p>
         {listContext === "vendor" ? (
@@ -74,58 +105,99 @@ function PoList({
       </div>
     );
   }
+
+  const sectionHeading =
+    listContext === "vendor" ? "PO siap dibuat shipment" : "Purchase order untuk vendor ini";
+
   return (
-    <ul className="ds-card-grid m-0 list-none p-0" aria-label="Daftar purchase order">
-      {rows.map((row) => (
-        <li key={row.po_number} className="min-w-0">
-          <Link
-            className="ds-entity-tile group flex h-full flex-col border-l-[3px] border-l-[var(--epson-yellow)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--page-bg)]"
-            href={`/vendor/purchase-orders/${encodeURIComponent(row.po_number)}`}
-          >
-            <div className="flex gap-3">
-              <div
-                className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--section-bg)] text-[var(--navy)]"
-                aria-hidden
-              >
-                <FileText className="h-4 w-4" strokeWidth={1.75} />
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="m-0">
-                      <span className="ds-inline-code break-all text-sm font-semibold leading-tight sm:text-base">
+    <section aria-labelledby="vendor-po-list-heading">
+      <h2
+        id="vendor-po-list-heading"
+        className="ds-h2 mb-3 text-base font-semibold text-[var(--navy)] sm:text-lg"
+      >
+        {sectionHeading}
+      </h2>
+      <ul className="m-0 flex list-none flex-col gap-4 p-0" aria-label="Daftar purchase order">
+        {rows.map((row) => (
+          <li key={row.po_number} className="min-w-0">
+            <article className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--surface)] shadow-[var(--shadow-sm)] border-l-4 border-l-[var(--epson-yellow)]">
+              <div className="flex flex-col lg:flex-row">
+                <div className="min-w-0 flex-1 p-4 sm:p-5">
+                  <div className="flex gap-3 sm:items-center sm:gap-4">
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--epson-yellow-muted)_85%,#ffffff)] text-amber-800"
+                      aria-hidden
+                    >
+                      <FileText className="h-5 w-5" strokeWidth={2} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={poDetailPath(row.po_number)}
+                        className="block break-all font-mono text-lg font-bold leading-tight tracking-tight text-[var(--navy)] underline-offset-2 hover:bg-[color-mix(in_srgb,var(--navy)_4%,#ffffff)] hover:underline sm:text-xl"
+                      >
                         {row.po_number}
-                      </span>
-                    </h3>
-                    <p className="mt-1.5 flex items-center gap-1.5 text-[0.7rem] text-[var(--text-secondary)] sm:text-xs">
-                      <Calendar className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
-                      <span>
-                        Dibuat <time dateTime={row.created_at}>{formatWhenShort(row.created_at)}</time>
-                      </span>
-                    </p>
+                      </Link>
+                    </div>
                   </div>
-                  <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[0.7rem] font-semibold tracking-tight text-[var(--info)] transition-colors group-hover:text-[var(--navy)] sm:text-[0.8rem]">
-                    Buat shipment
-                    <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-                  </span>
+
+                  <div
+                    className="my-4 h-px w-full bg-[var(--border-default)]"
+                    aria-hidden
+                  />
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                    <div className="flex gap-3">
+                      <div className={metricIconWrap} aria-hidden>
+                        <Tag className="h-4 w-4" strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-[var(--text-muted)]">Kode vendor</p>
+                        <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">
+                          {row.vendor_code}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <div className={metricIconWrap} aria-hidden>
+                        <Calendar className="h-4 w-4" strokeWidth={2} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-[var(--text-muted)]">Dibuat</p>
+                        <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">
+                          <time dateTime={row.created_at}>
+                            {formatWhenShort(row.created_at)}
+                          </time>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="mb-0 mt-4 text-[0.7rem] leading-relaxed text-[var(--text-secondary)] sm:mt-5 sm:text-xs">
+                  Konfirmasi shipment PO ini untuk melihat daftar part, kuantitas, dan menyiapkan shipment
+                    {listContext === "vendor" ? " pertama untuk nomor ini" : ""}.
+                  </p>
                 </div>
-                <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  <span
-                    className="inline-flex max-w-full min-w-0 items-center rounded-full bg-[var(--info-muted)] px-2.5 py-1 text-[0.65rem] font-semibold tracking-tight text-[var(--info)] sm:text-xs"
-                    title="Kode vendor (ERP)"
-                  >
-                    Vendor {row.vendor_code}
-                  </span>
-                </div>
-                <p className="mb-0 mt-2.5 text-[0.65rem] leading-snug text-[var(--text-muted)] sm:text-xs">
-                  Buka nomor PO untuk melihat item dan menyusun shipment.
-                </p>
+
+                <aside className="flex flex-col justify-center border-t border-[var(--border-default)] bg-[color-mix(in_srgb,var(--navy)_2.5%,#ffffff)] p-4 sm:p-5 lg:w-[min(100%,19rem)] lg:border-l lg:border-t-0">
+                  <p className="m-0 text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                    {blurbs.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                    {blurbs.body}
+                  </p>
+                  <div className="mt-4">
+                    <Link href={poDetailPath(row.po_number)} className={shipmentCtaBtn}>
+                      <Package className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+                      Buat Shipment
+                    </Link>
+                  </div>
+                </aside>
               </div>
-            </div>
-          </Link>
-        </li>
-      ))}
-    </ul>
+            </article>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

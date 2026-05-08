@@ -86,6 +86,24 @@ export function formatDiscrepancyLayerSummary(
   return parts.join(" · ");
 }
 
+/** Satu kalimat untuk kolom "Langkah selanjutnya" di daftar shipment vendor. */
+export function getVendorShipmentNextStepText(status: Shipment["status"]): string {
+  switch (status) {
+    case "pending":
+      return "Lengkapi box dan konfirmasi shipment ketika siap dikirim ke lokasi.";
+    case "in_transit":
+      return "Shipment dalam perjalanan — tunggu proses scan dan QC di lokasi penerimaan.";
+    case "arrived":
+      return "Shipment sudah di lokasi — tim sedang memproses box; pantau dari halaman detail.";
+    case "issue":
+      return "Ada temuan yang ditinjau Supervisor — cek detail untuk info selisih dan tindak lanjut.";
+    case "done":
+      return "Proses di lokasi selesai — buka detail jika Anda perlu menyimpan rangkuman.";
+    default:
+      return "Buka detail shipment untuk melihat box, label, dan kondisi terkini.";
+  }
+}
+
 export function getVendorShipmentStatusLabel(status: Shipment["status"]): {
   shortLabel: string;
   headline: string;
