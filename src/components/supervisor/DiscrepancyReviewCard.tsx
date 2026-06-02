@@ -24,7 +24,7 @@ type Props = {
   evidenceUrl: string | null;
   /** e.g. `h-full` when used in `ds-card-grid` */
   className?: string;
-  /** Shipment berstatus done: hilangkan aksi “Tandai untuk retur” (baca saja). */
+  /** Shipment berstatus done: hilangkan aksi “Setujui selisih” (baca saja). */
   reviewsLocked?: boolean;
 };
 
@@ -105,11 +105,11 @@ export function DiscrepancyReviewCard({
             setReturnDialogOpen(false);
           }
         }}
-        title="Tandai untuk retur"
+        title="Setujui selisih"
         description={
           <p className="m-0">Tandai selisih ini untuk retur?</p>
         }
-        confirmLabel="Tandai untuk retur"
+        confirmLabel="Setujui selisih"
         onConfirm={runMarkReturn}
         loading={submitting}
         variant="default"
@@ -306,7 +306,7 @@ export function DiscrepancyReviewCard({
                   "Memproses…"
                 ) : (
                   <>
-                    Tandai untuk retur
+                    Setujui selisih
                     <ChevronRight className="size-4 opacity-90" aria-hidden />
                   </>
                 )}
